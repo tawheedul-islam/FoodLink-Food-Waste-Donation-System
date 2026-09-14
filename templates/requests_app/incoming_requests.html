@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block title %}Incoming Requests{% endblock %}
+{% block content %}
+<h3 class="text-success mb-4">Incoming Requests</h3>
+
+<div class="row">
+    {% for req in requests %}
+    <div class="col-md-4 mb-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <h5 class="card-title">{{ req.donation.food_name }}</h5>
+                <p class="mb-1"><strong>Requested by:</strong> {{ req.receiver.username }}</p>
+                <p class="mb-1"><strong>Quantity:</strong> {{ req.donation.quantity }}</p>
+                <p class="mb-2"><strong>Requested on:</strong> {{ req.request_date|date:"d M Y, H:i" }}</p>
+
+                {% if req.status == 'pending' %}
+                    <span class="badge bg-warning text-dark mb-2">Pending</span><br>
+                    <a href="{% url 'update_request_status' req.pk 'accepted' %}" class="btn btn-success btn-sm mt-2">Accept</a>
+                    <a href="{% url 'update_request_status' req.pk 'rejected' %}" class="btn btn-danger btn-sm mt-2">Reject</a>
+                {% elif req.status == 'accepted' %}
+                    <span class="badge bg-success mb-2">Accepted</span><br>
+                    <a href="{% url 'update_request_status' req.pk 'completed' %}" class="btn btn-primary btn-sm mt-2">Mark Completed</a>
+                {% elif req.status == 'rejected' %}
+                    <span class="badge bg-danger">Rejected</span>
+                {% elif req.status == 'completed' %}
+                    <span class="badge bg-primary">Completed</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <p class="text-muted">No incoming requests yet.</p>
+    {% endfor %}
+</div>
+{% endblock %}

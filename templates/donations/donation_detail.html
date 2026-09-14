@@ -12,6 +12,10 @@
         <p><strong>Pickup Location:</strong> {{ donation.pickup_location }}</p>
         <p><strong>Expiry Time:</strong> {{ donation.expiry_time }}</p>
         <p><strong>Posted by:</strong> {{ donation.donor.username }}</p>
+
+        {% if user.role == 'receiver' and donation.status == 'posted' %}
+    <a href="{% url 'create_request' donation.pk %}" class="btn btn-success">Request This Donation</a>
+{% endif %}
         <a href="{% url 'donation_list' %}" class="btn btn-outline-success">Back to List</a>
     </div>
 </div>
