@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}Donations{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="text-success">
+        {% if user.role == 'donor' %}My Donations{% else %}Available Donations{% endif %}
+    </h3>
+    {% if user.role == 'donor' %}
+        <a href="{% url 'donation_create' %}" class="btn btn-success">+ Post New Donation</a>
+    {% endif %}
+</div>
+
+<div class="row">
+    {% for donation in donations %}
+    <div class="col-md-4 mb-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <h5 class="card-title">{{ donation.food_name }}</h5>
+                <span class="badge bg-secondary mb-2">{{ donation.category|title }}</span>
+                <span class="badge bg-info text-dark mb-2">{{ donation.status|title }}</span>
+                <p class="card-text mb-1"><strong>Quantity:</strong> {{ donation.quantity }}</p>
+                <p class="card-text mb-1"><strong>Pickup:</strong> {{ donation.pickup_location }}</p>
+                <p class="card-text mb-1"><strong>Expires:</strong> {{ donation.expiry_time }}</p>
+                <a href="{% url 'donation_detail' donation.pk %}" class="btn btn-outline-success btn-sm mt-2">View Details</a>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <p class="text-muted">No donations found.</p>
+    {% endfor %}
+</div>
+{% endblock %}
