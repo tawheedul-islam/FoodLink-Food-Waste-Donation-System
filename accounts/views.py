@@ -3,6 +3,9 @@ from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from .forms import RegisterForm
+from .models import User
+from donations.models import FoodDonation
+from requests_app.models import DonationRequest
 
 def register_view(request):
     if request.method == 'POST':
@@ -35,3 +38,21 @@ def logout_view(request):
 @login_required
 def dashboard_view(request):
     return render(request, 'accounts/dashboard.html')
+
+@login_required
+def admin_dashboard(request):
+    if not request.user.is_superuser:
+        messages.error(request, 'Access denied. Admins only.')
+        return redirect('dashboard')
+
+    context = {
+        'total_users': User.objects.count(),
+        'total_donors': User.objects.filter(role='donor').count(),
+        'total_receivers': User.objects.filter(role='receiver').count(),
+        'total_donations': FoodDonation.objects.count(),
+        'posted_donations': FoodDonation.objects.filter(status='posted').count(),
+        'completed_donations': FoodDonation.objects.filter(status='completed').count(),
+        'total_requests': DonationRequest.objects.count(),
+        'pending_requests': DonationRequest.objects.filter(status='pending').count(),
+    }
+    return render(request, 'accounts/admin_dashboard.html', context)

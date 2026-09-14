@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block title %}Admin Dashboard{% endblock %}
+{% block content %}
+<h3 class="text-success mb-4">📊 Admin Dashboard</h3>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card shadow-sm text-center p-3">
+            <h2 class="text-success">{{ total_users }}</h2>
+            <p class="mb-0">Total Users</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm text-center p-3">
+            <h2 class="text-primary">{{ total_donors }}</h2>
+            <p class="mb-0">Donors</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm text-center p-3">
+            <h2 class="text-info">{{ total_receivers }}</h2>
+            <p class="mb-0">Receivers</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm text-center p-3">
+            <h2 class="text-warning">{{ total_donations }}</h2>
+            <p class="mb-0">Total Donations</p>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-3">
+        <div class="card shadow-sm text-center p-3">
+            <h2 class="text-secondary">{{ posted_donations }}</h2>
+            <p class="mb-0">Currently Posted</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm text-center p-3">
+            <h2 class="text-success">{{ completed_donations }}</h2>
+            <p class="mb-0">Completed Donations</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm text-center p-3">
+            <h2 class="text-dark">{{ total_requests }}</h2>
+            <p class="mb-0">Total Requests</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm text-center p-3">
+            <h2 class="text-danger">{{ pending_requests }}</h2>
+            <p class="mb-0">Pending Requests</p>
+        </div>
+    </div>
+</div>
+
+<div class="mt-4">
+    <a href="/admin/" class="btn btn-outline-success">Go to Django Admin Panel</a>
+</div>
+{% endblock %}

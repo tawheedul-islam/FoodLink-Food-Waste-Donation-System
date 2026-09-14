@@ -12,11 +12,16 @@
         <div class="container">
             <a class="navbar-brand fw-bold" href="{% url 'dashboard' %}">🍽️ FoodLink</a>
             <a href="{% url 'donation_list' %}" class="btn btn-outline-light btn-sm me-2">Donations</a>
+            
            
             {% if user.role == 'receiver' %}
     <a href="{% url 'my_requests' %}" class="btn btn-outline-light btn-sm me-2">My Requests</a>
 {% elif user.role == 'donor' %}
     <a href="{% url 'incoming_requests' %}" class="btn btn-outline-light btn-sm me-2">Incoming Requests</a>
+{% endif %}
+
+{% if user.is_superuser %}
+    <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-light btn-sm me-2">Admin Stats</a>
 {% endif %}
 
             <div class="d-flex">
