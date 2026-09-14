@@ -1,11 +1,12 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Dashboard - FoodLink</title>
-</head>
-<body>
-    <h2>Welcome, {{ user.username }}!</h2>
-    <p>Your role: {{ user.role }}</p>
-    <a href="{% url 'logout' %}">Logout</a>
-</body>
-</html>
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="card shadow-sm">
+    <div class="card-body p-4">
+        <h3 class="text-success">Welcome, {{ user.username }}! 👋</h3>
+        <p class="mb-1"><strong>Role:</strong> {{ user.role|title }}</p>
+        <p class="mb-1"><strong>Email:</strong> {{ user.email }}</p>
+        <p class="mb-0"><strong>Phone:</strong> {{ user.phone_number }}</p>
+    </div>
+</div>
+{% endblock %}
