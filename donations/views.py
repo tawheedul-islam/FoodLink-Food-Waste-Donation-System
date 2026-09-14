@@ -10,7 +10,30 @@ def donation_list(request):
         donations = FoodDonation.objects.filter(donor=request.user).order_by('-created_at')
     else:
         donations = FoodDonation.objects.filter(status='posted').order_by('-created_at')
-    return render(request, 'donations/donation_list.html', {'donations': donations})
+
+    # Search by food name
+    query = request.GET.get('q')
+    if query:
+        donations = donations.filter(food_name__icontains=query)
+
+    # Filter by category
+    category = request.GET.get('category')
+    if category:
+        donations = donations.filter(category=category)
+
+    # Filter by location
+    location = request.GET.get('location')
+    if location:
+        donations = donations.filter(pickup_location__icontains=location)
+
+    context = {
+        'donations': donations,
+        'category_choices': FoodDonation.CATEGORY_CHOICES,
+        'selected_category': category,
+        'query': query or '',
+        'location': location or '',
+    }
+    return render(request, 'donations/donation_list.html', context)
 
 @login_required
 def donation_create(request):

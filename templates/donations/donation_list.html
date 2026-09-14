@@ -11,6 +11,26 @@
     {% endif %}
 </div>
 
+<form method="GET" class="row g-2 mb-4">
+    <div class="col-md-4">
+        <input type="text" name="q" class="form-control" placeholder="Search by food name..." value="{{ query }}">
+    </div>
+    <div class="col-md-3">
+        <select name="category" class="form-select">
+            <option value="">All Categories</option>
+            {% for value, label in category_choices %}
+                <option value="{{ value }}" {% if selected_category == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-3">
+        <input type="text" name="location" class="form-control" placeholder="Filter by location..." value="{{ location }}">
+    </div>
+    <div class="col-md-2">
+        <button type="submit" class="btn btn-outline-success w-100">Filter</button>
+    </div>
+</form>
+
 <div class="row">
     {% for donation in donations %}
     <div class="col-md-4 mb-4">
