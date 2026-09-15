@@ -1,0 +1,54 @@
+:root {
+    --primary-green: #198754;
+    --dark-green: #146c43;
+    --light-bg: #f8f9fa;
+}
+
+body {
+    font-family: 'Segoe UI', sans-serif;
+}
+
+.navbar-brand {
+    font-size: 1.4rem;
+}
+
+.card {
+    border: none;
+    border-radius: 12px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.1) !important;
+}
+
+.btn-success {
+    background-color: var(--primary-green);
+    border-color: var(--primary-green);
+}
+
+.btn-success:hover {
+    background-color: var(--dark-green);
+    border-color: var(--dark-green);
+}
+
+.hero-section {
+    background: linear-gradient(135deg, #198754, #20c997);
+    color: white;
+    padding: 80px 20px;
+    border-radius: 0 0 30px 30px;
+}
+
+footer {
+    background-color: #212529;
+    color: #adb5bd;
+    padding: 20px 0;
+    margin-top: 60px;
+    text-align: center;
+}
+
+.badge {
+    font-weight: 500;
+    padding: 6px 10px;
+}

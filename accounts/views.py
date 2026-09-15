@@ -35,6 +35,11 @@ def logout_view(request):
     logout(request)
     return redirect('login')
 
+def home_view(request):
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+    return render(request, 'accounts/home.html')
+
 @login_required
 def dashboard_view(request):
     return render(request, 'accounts/dashboard.html')

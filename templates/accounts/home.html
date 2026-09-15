@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block title %}Welcome to FoodLink{% endblock %}
+{% block content %}
+
+<div class="hero-section text-center mb-5">
+    <div class="container">
+        <h1 class="fs-2 fw-bold">Connecting Surplus Food to Those Who Need It 🍽️</h1>
+        <p class="lead mt-3">FoodLink helps restaurants, hotels, and households donate surplus food to NGOs and shelters - reducing waste, one meal at a time.</p>
+        <div class="mt-4">
+            <a href="{% url 'register' %}" class="btn btn-light btn-lg me-2">Get Started</a>
+            <a href="{% url 'login' %}" class="btn btn-outline-light btn-lg">Login</a>
+        </div>
+    </div>
+</div>
+
+<div class="row text-center g-4 mb-5">
+    <div class="col-md-4">
+        <div class="card shadow-sm p-4 h-100">
+            <h4 class="text-success">🍲 Post Food</h4>
+            <p class="text-muted mb-0">Donors can easily list surplus food with quantity, category, and pickup details.</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm p-4 h-100">
+            <h4 class="text-success">🔍 Find & Request</h4>
+            <p class="text-muted mb-0">Receivers browse available donations and request what fits their needs.</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm p-4 h-100">
+            <h4 class="text-success">✅ Track Pickup</h4>
+            <p class="text-muted mb-0">Every donation is tracked from posting to completion for full transparency.</p>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
