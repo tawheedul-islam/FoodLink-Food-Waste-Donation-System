@@ -5,7 +5,7 @@ class FoodDonationForm(forms.ModelForm):
     class Meta:
         model = FoodDonation
         fields = ['food_name', 'category', 'quantity', 'description',
-                  'preparation_time', 'expiry_time', 'pickup_location']
+                  'preparation_time', 'expiry_time', 'pickup_location', 'image']
         widgets = {
             'food_name': forms.TextInput(attrs={'class': 'form-control'}),
             'category': forms.Select(attrs={'class': 'form-select'}),
@@ -14,4 +14,5 @@ class FoodDonationForm(forms.ModelForm):
             'preparation_time': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
             'expiry_time': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
             'pickup_location': forms.TextInput(attrs={'class': 'form-control'}),
+            'image': forms.ClearableFileInput(attrs={'class': 'form-control'}),
         }

@@ -36,6 +36,11 @@
     <div class="col-md-4 mb-4">
         <div class="card shadow-sm h-100">
             <div class="card-body">
+                {% if donation.image %}
+    <img src="{{ donation.image.url }}" class="card-img-top" style="height: 180px; object-fit: cover; border-radius: 12px 12px 0 0;">
+{% endif %}
+
+
                 <h5 class="card-title">{{ donation.food_name }}</h5>
                 <span class="badge bg-secondary mb-2">{{ donation.category|title }}</span>
                 <span class="badge bg-info text-dark mb-2">{{ donation.status|title }}</span>

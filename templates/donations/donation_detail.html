@@ -3,6 +3,9 @@
 {% block content %}
 <div class="card shadow-sm">
     <div class="card-body p-4">
+        {% if donation.image %}
+            <img src="{{ donation.image.url }}" class="img-fluid rounded mb-3" style="max-height: 350px; object-fit: cover; width: 100%;">
+        {% endif %}
         <h3 class="text-success">{{ donation.food_name }}</h3>
         <span class="badge bg-secondary">{{ donation.category|title }}</span>
         <span class="badge bg-info text-dark">{{ donation.status|title }}</span>
@@ -14,13 +17,13 @@
         <p><strong>Posted by:</strong> {{ donation.donor.username }}</p>
 
         {% if user.role == 'receiver' and donation.status == 'posted' %}
-    <a href="{% url 'create_request' donation.pk %}" class="btn btn-success">Request This Donation</a>
-{% endif %}
+            <a href="{% url 'create_request' donation.pk %}" class="btn btn-success">Request This Donation</a>
+        {% endif %}
 
-{% if donation.donor == user %}
-    <a href="{% url 'donation_edit' donation.pk %}" class="btn btn-outline-primary">Edit</a>
-    <a href="{% url 'donation_delete' donation.pk %}" class="btn btn-outline-danger">Delete</a>
-{% endif %}
+        {% if donation.donor == user %}
+            <a href="{% url 'donation_edit' donation.pk %}" class="btn btn-outline-primary">Edit</a>
+            <a href="{% url 'donation_delete' donation.pk %}" class="btn btn-outline-danger">Delete</a>
+        {% endif %}
         <a href="{% url 'donation_list' %}" class="btn btn-outline-success">Back to List</a>
     </div>
 </div>

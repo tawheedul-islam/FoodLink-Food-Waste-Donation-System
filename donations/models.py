@@ -25,6 +25,7 @@ class FoodDonation(models.Model):
     preparation_time = models.DateTimeField(blank=True, null=True)
     expiry_time = models.DateTimeField()
     pickup_location = models.CharField(max_length=255)
+    image = models.ImageField(upload_to='donation_images/', blank=True, null=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='posted')
     created_at = models.DateTimeField(auto_now_add=True)
 

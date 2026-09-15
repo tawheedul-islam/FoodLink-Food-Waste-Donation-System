@@ -6,7 +6,7 @@
         <div class="card shadow-sm">
             <div class="card-body p-4">
                 <h3 class="mb-4 text-success">{% if editing %}Edit Food Donation{% else %}Post a Food Donation{% endif %}</h3>
-                <form method="POST">
+                <form method="POST" enctype="multipart/form-data">
                     {% csrf_token %}
                     {% for field in form %}
                         <div class="mb-3">

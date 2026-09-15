@@ -42,7 +42,7 @@ def donation_create(request):
         return redirect('donation_list')
 
     if request.method == 'POST':
-        form = FoodDonationForm(request.POST)
+        form = FoodDonationForm(request.POST , request.FILES)
         if form.is_valid():
             donation = form.save(commit=False)
             donation.donor = request.user
@@ -67,7 +67,7 @@ def donation_edit(request, pk):
         return redirect('donation_list')
 
     if request.method == 'POST':
-        form = FoodDonationForm(request.POST, instance=donation)
+        form = FoodDonationForm(request.POST, request.FILES, instance=donation)
         if form.is_valid():
             form.save()
             messages.success(request, 'Donation updated successfully!')
