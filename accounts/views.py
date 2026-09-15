@@ -2,10 +2,11 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .forms import RegisterForm
+from .forms import RegisterForm, ProfileEditForm
 from .models import User
 from donations.models import FoodDonation
 from requests_app.models import DonationRequest
+
 
 def register_view(request):
     if request.method == 'POST':
@@ -61,3 +62,15 @@ def admin_dashboard(request):
         'pending_requests': DonationRequest.objects.filter(status='pending').count(),
     }
     return render(request, 'accounts/admin_dashboard.html', context)
+
+@login_required
+def profile_edit(request):
+    if request.method == 'POST':
+        form = ProfileEditForm(request.POST, instance=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Profile updated successfully!')
+            return redirect('dashboard')
+    else:
+        form = ProfileEditForm(instance=request.user)
+    return render(request, 'accounts/profile_edit.html', {'form': form})

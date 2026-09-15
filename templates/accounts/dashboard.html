@@ -3,10 +3,12 @@
 {% block content %}
 <div class="card shadow-sm">
     <div class="card-body p-4">
-        <h3 class="text-success">Welcome, {{ user.username }}! 👋</h3>
+        <h3 class="text-success">Welcome, {{ user.first_name|default:user.username }}! 👋</h3>
+        <p class="mb-1"><strong>Full Name:</strong> {{ user.first_name }} {{ user.last_name }}</p>
         <p class="mb-1"><strong>Role:</strong> {{ user.role|title }}</p>
-        <p class="mb-1"><strong>Email:</strong> {{ user.email }}</p>
-        <p class="mb-0"><strong>Phone:</strong> {{ user.phone_number }}</p>
+        <p class="mb-1"><strong>Email:</strong> {{ user.email|default:"Not set" }}</p>
+        <p class="mb-3"><strong>Phone:</strong> {{ user.phone_number|default:"Not set" }}</p>
+        <a href="{% url 'profile_edit' %}" class="btn btn-outline-success">Edit Profile</a>
     </div>
 </div>
 {% endblock %}
