@@ -54,3 +54,18 @@ def update_request_status(request, pk, new_status):
 
     messages.success(request, f'Request marked as {new_status}.')
     return redirect('incoming_requests')
+
+@login_required
+def cancel_request(request, pk):
+    req = get_object_or_404(DonationRequest, pk=pk, receiver=request.user)
+
+    if req.status != 'pending':
+        messages.error(request, 'You can only cancel pending requests.')
+        return redirect('my_requests')
+
+    donation = req.donation
+    req.delete()
+    donation.status = 'posted'
+    donation.save()
+    messages.success(request, 'Request cancelled successfully.')
+    return redirect('my_requests')

@@ -13,7 +13,8 @@
                 <p class="mb-1"><strong>Pickup:</strong> {{ req.donation.pickup_location }}</p>
                 <p class="mb-2"><strong>Requested on:</strong> {{ req.request_date|date:"d M Y, H:i" }}</p>
                 {% if req.status == 'pending' %}
-                    <span class="badge bg-warning text-dark">Pending</span>
+                    <span class="badge bg-warning text-dark">Pending</span> <br>
+                    <a href="{% url 'cancel_request' req.pk %}" class="btn btn-danger btn-sm mt-2">Cancel Request</a>
                 {% elif req.status == 'accepted' %}
                     <span class="badge bg-success">Accepted</span>
                 {% elif req.status == 'rejected' %}

@@ -3,6 +3,9 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from .models import FoodDonation
 from .forms import FoodDonationForm
+from requests_app.models import DonationRequest
+from django.core.paginator import Paginator
+
 
 @login_required
 def donation_list(request):
@@ -25,6 +28,10 @@ def donation_list(request):
     location = request.GET.get('location')
     if location:
         donations = donations.filter(pickup_location__icontains=location)
+        
+    paginator = Paginator(donations, 6)  # 6 per page
+    page_number = request.GET.get('page')
+    donations = paginator.get_page(page_number)
 
     context = {
         'donations': donations,
@@ -56,7 +63,13 @@ def donation_create(request):
 @login_required
 def donation_detail(request, pk):
     donation = get_object_or_404(FoodDonation, pk=pk)
-    return render(request, 'donations/donation_detail.html', {'donation': donation})
+    donation_requests = None
+    if donation.donor == request.user:
+        donation_requests = DonationRequest.objects.filter(donation=donation).order_by('-request_date')
+    return render(request, 'donations/donation_detail.html', {
+        'donation': donation,
+        'donation_requests': donation_requests
+    })
 
 @login_required
 def donation_edit(request, pk):

@@ -24,6 +24,36 @@
             <a href="{% url 'donation_edit' donation.pk %}" class="btn btn-outline-primary">Edit</a>
             <a href="{% url 'donation_delete' donation.pk %}" class="btn btn-outline-danger">Delete</a>
         {% endif %}
+
+        {% if donation_requests %}
+<hr>
+<h5 class="mt-4">Requests for this Donation</h5>
+<div class="row g-3">
+    {% for req in donation_requests %}
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <p class="mb-1"><strong>Requested by:</strong> {{ req.receiver.username }}</p>
+                <p class="mb-2"><strong>Date:</strong> {{ req.request_date|date:"d M Y, H:i" }}</p>
+
+                {% if req.status == 'pending' %}
+                    <span class="badge bg-warning text-dark mb-2">Pending</span><br>
+                    <a href="{% url 'update_request_status' req.pk 'accepted' %}" class="btn btn-success btn-sm mt-1">Accept</a>
+                    <a href="{% url 'update_request_status' req.pk 'rejected' %}" class="btn btn-danger btn-sm mt-1">Reject</a>
+                {% elif req.status == 'accepted' %}
+                    <span class="badge bg-success mb-2">Accepted</span><br>
+                    <a href="{% url 'update_request_status' req.pk 'completed' %}" class="btn btn-primary btn-sm mt-1">Mark Completed</a>
+                {% elif req.status == 'rejected' %}
+                    <span class="badge bg-danger">Rejected</span>
+                {% elif req.status == 'completed' %}
+                    <span class="badge bg-primary">Completed</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
         <a href="{% url 'donation_list' %}" class="btn btn-outline-success">Back to List</a>
     </div>
 </div>
