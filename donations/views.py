@@ -57,3 +57,36 @@ def donation_create(request):
 def donation_detail(request, pk):
     donation = get_object_or_404(FoodDonation, pk=pk)
     return render(request, 'donations/donation_detail.html', {'donation': donation})
+
+@login_required
+def donation_edit(request, pk):
+    donation = get_object_or_404(FoodDonation, pk=pk)
+
+    if donation.donor != request.user:
+        messages.error(request, 'You are not allowed to edit this donation.')
+        return redirect('donation_list')
+
+    if request.method == 'POST':
+        form = FoodDonationForm(request.POST, instance=donation)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Donation updated successfully!')
+            return redirect('donation_detail', pk=pk)
+    else:
+        form = FoodDonationForm(instance=donation)
+    return render(request, 'donations/donation_form.html', {'form': form, 'editing': True})
+
+@login_required
+def donation_delete(request, pk):
+    donation = get_object_or_404(FoodDonation, pk=pk)
+
+    if donation.donor != request.user:
+        messages.error(request, 'You are not allowed to delete this donation.')
+        return redirect('donation_list')
+
+    if request.method == 'POST':
+        donation.delete()
+        messages.success(request, 'Donation deleted successfully.')
+        return redirect('donation_list')
+
+    return render(request, 'donations/donation_confirm_delete.html', {'donation': donation})

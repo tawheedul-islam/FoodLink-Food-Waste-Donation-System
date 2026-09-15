@@ -5,7 +5,7 @@
     <div class="col-md-7">
         <div class="card shadow-sm">
             <div class="card-body p-4">
-                <h3 class="mb-4 text-success">Post a Food Donation</h3>
+                <h3 class="mb-4 text-success">{% if editing %}Edit Food Donation{% else %}Post a Food Donation{% endif %}</h3>
                 <form method="POST">
                     {% csrf_token %}
                     {% for field in form %}
@@ -17,8 +17,7 @@
                             {% endfor %}
                         </div>
                     {% endfor %}
-                    <button type="submit" class="btn btn-success w-100">Post Donation</button>
-                </form>
+                    <button type="submit" class="btn btn-success w-100">{% if editing %}Update Donation{% else %}Post Donation{% endif %}</button>
             </div>
         </div>
     </div>

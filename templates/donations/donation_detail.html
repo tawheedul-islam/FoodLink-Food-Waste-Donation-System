@@ -16,6 +16,11 @@
         {% if user.role == 'receiver' and donation.status == 'posted' %}
     <a href="{% url 'create_request' donation.pk %}" class="btn btn-success">Request This Donation</a>
 {% endif %}
+
+{% if donation.donor == user %}
+    <a href="{% url 'donation_edit' donation.pk %}" class="btn btn-outline-primary">Edit</a>
+    <a href="{% url 'donation_delete' donation.pk %}" class="btn btn-outline-danger">Delete</a>
+{% endif %}
         <a href="{% url 'donation_list' %}" class="btn btn-outline-success">Back to List</a>
     </div>
 </div>
