@@ -43,7 +43,23 @@ def home_view(request):
 
 @login_required
 def dashboard_view(request):
-    return render(request, 'accounts/dashboard.html')
+    context = {}
+    if request.user.role == 'donor':
+        donations = FoodDonation.objects.filter(donor=request.user)
+        context['total_donations'] = donations.count()
+        context['posted_count'] = donations.filter(status='posted').count()
+        context['completed_count'] = donations.filter(status='completed').count()
+        context['pending_requests_count'] = DonationRequest.objects.filter(
+            donation__donor=request.user, status='pending'
+        ).count()
+    elif request.user.role == 'receiver':
+        my_requests = DonationRequest.objects.filter(receiver=request.user)
+        context['total_requests'] = my_requests.count()
+        context['pending_count'] = my_requests.filter(status='pending').count()
+        context['accepted_count'] = my_requests.filter(status='accepted').count()
+        context['completed_count'] = my_requests.filter(status='completed').count()
+
+    return render(request, 'accounts/dashboard.html', context)
 
 @login_required
 def admin_dashboard(request):

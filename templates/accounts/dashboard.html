@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}Dashboard{% endblock %}
 {% block content %}
-<div class="card shadow-sm">
+<div class="card shadow-sm mb-4">
     <div class="card-body p-4">
         <h3 class="text-success">Welcome, {{ user.first_name|default:user.username }}! 👋</h3>
         <p class="mb-1"><strong>Full Name:</strong> {{ user.first_name }} {{ user.last_name }}</p>
@@ -11,4 +11,66 @@
         <a href="{% url 'profile_edit' %}" class="btn btn-outline-success">Edit Profile</a>
     </div>
 </div>
+
+{% if user.role == 'donor' %}
+<h5 class="mb-3">Your Donation Summary</h5>
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card shadow-sm text-center p-3">
+            <h2 class="text-success">{{ total_donations }}</h2>
+            <p class="mb-0">Total Donations</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm text-center p-3">
+            <h2 class="text-info">{{ posted_count }}</h2>
+            <p class="mb-0">Currently Posted</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm text-center p-3">
+            <h2 class="text-primary">{{ completed_count }}</h2>
+            <p class="mb-0">Completed</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm text-center p-3">
+            <h2 class="text-warning">{{ pending_requests_count }}</h2>
+            <p class="mb-0">Pending Requests</p>
+        </div>
+    </div>
+</div>
+<a href="{% url 'donation_list' %}" class="btn btn-success">Manage Donations</a>
+
+{% elif user.role == 'receiver' %}
+<h5 class="mb-3">Your Request Summary</h5>
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card shadow-sm text-center p-3">
+            <h2 class="text-success">{{ total_requests }}</h2>
+            <p class="mb-0">Total Requests</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm text-center p-3">
+            <h2 class="text-warning">{{ pending_count }}</h2>
+            <p class="mb-0">Pending</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm text-center p-3">
+            <h2 class="text-info">{{ accepted_count }}</h2>
+            <p class="mb-0">Accepted</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm text-center p-3">
+            <h2 class="text-primary">{{ completed_count }}</h2>
+            <p class="mb-0">Completed</p>
+        </div>
+    </div>
+</div>
+<a href="{% url 'donation_list' %}" class="btn btn-success">Browse Donations</a>
+{% endif %}
+
 {% endblock %}
