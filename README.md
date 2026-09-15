@@ -46,12 +46,14 @@ python manage.py runserver
 
 Visit `http://127.0.0.1:8000/` in your browser.
 
+
 ## Project Structure
 
+```text
 foodlink/
-├── accounts/ # User authentication & profiles
-├── donations/ # Food donation management
-├── requests_app/ # Donation request workflow
-├── templates/ # HTML templates
-├── static/ # CSS/JS files
-└── media/ # Uploaded donation images
+├── accounts/       # User authentication & profiles
+├── donations/      # Food donation management
+├── requests_app/   # Donation request workflow
+├── templates/      # HTML templates
+├── static/         # CSS/JS files
+└── media/          # Uploaded donation images
