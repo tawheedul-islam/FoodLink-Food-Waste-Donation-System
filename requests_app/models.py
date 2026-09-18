@@ -17,3 +17,13 @@ class DonationRequest(models.Model):
 
     def __str__(self):
         return f"{self.receiver.username} → {self.donation.food_name} ({self.status})"
+    
+class Notification(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='notifications')
+    message = models.CharField(max_length=255)
+    donation = models.ForeignKey('donations.FoodDonation', on_delete=models.CASCADE, null=True, blank=True)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username}: {self.message[:40]}"

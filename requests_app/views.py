@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from donations.models import FoodDonation
-from .models import DonationRequest
+from .models import DonationRequest, Notification
 
 @login_required
 def create_request(request, pk):
@@ -20,6 +20,12 @@ def create_request(request, pk):
     DonationRequest.objects.create(donation=donation, receiver=request.user)
     donation.status = 'requested'
     donation.save()
+
+    Notification.objects.create(
+        user=donation.donor,
+        message=f"{request.user.username} requested your donation '{donation.food_name}'.",
+        donation=donation
+    )
     messages.success(request, 'Request submitted successfully!')
     return redirect('my_requests')
 
@@ -52,6 +58,11 @@ def update_request_status(request, pk, new_status):
         req.donation.status = 'completed'
         req.donation.save()
 
+    Notification.objects.create(
+        user=req.receiver,
+        message=f"Your request for '{req.donation.food_name}' was {new_status}.",
+        donation=req.donation
+    )
     messages.success(request, f'Request marked as {new_status}.')
     return redirect('incoming_requests')
 
@@ -69,3 +80,10 @@ def cancel_request(request, pk):
     donation.save()
     messages.success(request, 'Request cancelled successfully.')
     return redirect('my_requests')
+
+@login_required
+def notifications(request):
+    notes = Notification.objects.filter(user=request.user).order_by('-created_at')
+    unread = notes.filter(is_read=False)
+    unread.update(is_read=True)
+    return render(request, 'requests_app/notifications.html', {'notifications': notes})

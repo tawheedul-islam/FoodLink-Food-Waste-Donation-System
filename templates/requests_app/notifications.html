@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block title %}Notifications{% endblock %}
+{% block content %}
+<h3 class="text-success mb-4">🔔 Notifications</h3>
+<div class="list-group">
+    {% for note in notifications %}
+        {% if note.donation %}
+            <a href="{% url 'donation_detail' note.donation.pk %}" class="list-group-item list-group-item-action {% if not note.is_read %}border-success{% endif %}">
+                <p class="mb-1">{{ note.message }}</p>
+                <small class="text-muted">{{ note.created_at|date:"d M Y, H:i" }}</small>
+            </a>
+        {% else %}
+            <div class="list-group-item {% if not note.is_read %}border-success{% endif %}">
+                <p class="mb-1">{{ note.message }}</p>
+                <small class="text-muted">{{ note.created_at|date:"d M Y, H:i" }}</small>
+            </div>
+        {% endif %}
+    {% empty %}
+        <p class="text-muted">No notifications yet.</p>
+    {% endfor %}
+</div>
+{% endblock %}
