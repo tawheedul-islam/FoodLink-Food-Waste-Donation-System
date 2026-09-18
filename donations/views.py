@@ -5,6 +5,7 @@ from .models import FoodDonation
 from .forms import FoodDonationForm
 from requests_app.models import DonationRequest
 from django.core.paginator import Paginator
+from django.utils import timezone
 
 
 @login_required
@@ -12,7 +13,7 @@ def donation_list(request):
     if request.user.role == 'donor':
         donations = FoodDonation.objects.filter(donor=request.user).order_by('-created_at')
     else:
-        donations = FoodDonation.objects.filter(status='posted').order_by('-created_at')
+       donations = FoodDonation.objects.filter(status='posted', expiry_time__gt=timezone.now()).order_by('-created_at')
 
     # Search by food name
     query = request.GET.get('q')
