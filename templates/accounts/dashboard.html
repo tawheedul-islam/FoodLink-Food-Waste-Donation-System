@@ -1,92 +1,114 @@
 {% extends 'base.html' %}
+{% load rating_extras %}
 {% block title %}Dashboard{% endblock %}
 {% block content %}
-<div class="card shadow-sm mb-4">
-    <div class="card-body p-4">
-        <h3 class="text-success">Welcome, {{ user.first_name|default:user.username }}! 👋</h3>
-        <p class="mb-1"><strong>Full Name:</strong> {{ user.first_name }} {{ user.last_name }}</p>
-        <p class="mb-1"><strong>Role:</strong> {{ user.role|title }}</p>
-        <p class="mb-1"><strong>Email:</strong> {{ user.email|default:"Not set" }}</p>
-        <p class="mb-3"><strong>Phone:</strong> {{ user.phone_number|default:"Not set" }}</p>
-        <a href="{% url 'profile_edit' %}" class="btn btn-outline-success">Edit Profile</a>
+
+<div class="profile-card reveal mb-4">
+    <div class="d-flex align-items-center gap-3 flex-wrap">
+        <div class="avatar">{{ user.username|slice:":1"|upper }}</div>
+        <div class="flex-grow-1">
+            <h4 class="fw-bold mb-1">Welcome back, {{ user.first_name|default:user.username }}! 👋</h4>
+            <span class="badge rounded-pill text-bg-success">{{ user.role|title }}</span>
+            <small class="text-muted ms-2"><i class="bi bi-envelope"></i> {{ user.email|default:"Not set" }}</small>
+            <small class="text-muted ms-2"><i class="bi bi-telephone"></i> {{ user.phone_number|default:"Not set" }}</small>
+        </div>
+        <a href="{% url 'profile_edit' %}" class="btn btn-outline-success"><i class="bi bi-pencil-square"></i> Edit Profile</a>
     </div>
 </div>
 
 {% if user.role == 'donor' %}
-<h5 class="mb-3">Your Donation Summary</h5>
-<div class="row g-3 mb-4">
-    <div class="col-md-3">
-        <div class="card shadow-sm text-center p-3">
-            <h2 class="text-success">{{ total_donations }}</h2>
-            <p class="mb-0">Total Donations</p>
+<h5 class="fw-semibold mb-3">Your Donation Summary</h5>
+<div class="row g-3 mb-4 text-center">
+    <div class="col-6 col-md-3 reveal">
+        <div class="card stat-card p-3">
+            <div class="stat-icon grad-green"><i class="bi bi-basket2-fill"></i></div>
+            <h2 class="fw-bold mb-0" data-count="{{ total_donations }}">0</h2>
+            <small class="text-muted">Total Donations</small>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card shadow-sm text-center p-3">
-            <h2 class="text-info">{{ posted_count }}</h2>
-            <p class="mb-0">Currently Posted</p>
+    <div class="col-6 col-md-3 reveal">
+        <div class="card stat-card p-3">
+            <div class="stat-icon grad-blue"><i class="bi bi-megaphone-fill"></i></div>
+            <h2 class="fw-bold mb-0" data-count="{{ posted_count }}">0</h2>
+            <small class="text-muted">Currently Posted</small>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card shadow-sm text-center p-3">
-            <h2 class="text-primary">{{ completed_count }}</h2>
-            <p class="mb-0">Completed</p>
+    <div class="col-6 col-md-3 reveal">
+        <div class="card stat-card p-3">
+            <div class="stat-icon grad-purple"><i class="bi bi-check2-circle"></i></div>
+            <h2 class="fw-bold mb-0" data-count="{{ completed_count }}">0</h2>
+            <small class="text-muted">Completed</small>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card shadow-sm text-center p-3">
-            <h2 class="text-warning">{{ pending_requests_count }}</h2>
-            <p class="mb-0">Pending Requests</p>
+    <div class="col-6 col-md-3 reveal">
+        <div class="card stat-card p-3">
+            <div class="stat-icon grad-orange"><i class="bi bi-hourglass-split"></i></div>
+            <h2 class="fw-bold mb-0" data-count="{{ pending_requests_count }}">0</h2>
+            <small class="text-muted">Pending Requests</small>
         </div>
     </div>
 </div>
-<a href="{% url 'donation_list' %}" class="btn btn-success">Manage Donations</a>
 
+<div class="d-flex gap-2 flex-wrap mb-4">
+    <a href="{% url 'donation_create' %}" class="btn btn-success"><i class="bi bi-plus-circle"></i> Post Donation</a>
+    <a href="{% url 'donation_list' %}" class="btn btn-outline-success">Manage Donations</a>
+    <a href="{% url 'incoming_requests' %}" class="btn btn-outline-success">Incoming Requests</a>
+</div>
 
 {% if avg_rating %}
-<div class="card shadow-sm mt-4">
-    <div class="card-body p-4">
-        <h5 class="text-success">Your Rating: {{ avg_rating }} ★</h5>
-        <p class="text-muted">Based on {{ ratings.count }} review(s)</p>
-        {% for r in ratings|slice:":5" %}
-            <div class="border-top pt-2 mt-2">
-                <strong>{{ r.score }} ★</strong> — {{ r.rated_by.username }}
-                {% if r.comment %}<p class="mb-0 text-muted">"{{ r.comment }}"</p>{% endif %}
-            </div>
-        {% endfor %}
-    </div>
+<div class="card p-4 reveal">
+    <h5 class="fw-semibold">
+        Your Rating:
+        <span class="text-warning">{% for i in avg_rating|star_range %}★{% endfor %}{% for i in avg_rating|empty_star_range %}☆{% endfor %}</span>
+        <small class="text-muted">({{ avg_rating }} from {{ ratings.count }} review{{ ratings.count|pluralize }})</small>
+    </h5>
+    {% for r in ratings|slice:":5" %}
+        <div class="border-top pt-2 mt-2">
+            <strong class="text-warning">{% for i in r.score|star_range %}★{% endfor %}{% for i in r.score|empty_star_range %}☆{% endfor %}</strong>
+            <span class="text-muted">— {{ r.rated_by.username }}</span>
+            {% if r.comment %}<p class="mb-0 text-muted fst-italic">"{{ r.comment }}"</p>{% endif %}
+        </div>
+    {% endfor %}
 </div>
 {% endif %}
 
 {% elif user.role == 'receiver' %}
-<h5 class="mb-3">Your Request Summary</h5>
-<div class="row g-3 mb-4">
-    <div class="col-md-3">
-        <div class="card shadow-sm text-center p-3">
-            <h2 class="text-success">{{ total_requests }}</h2>
-            <p class="mb-0">Total Requests</p>
+<h5 class="fw-semibold mb-3">Your Request Summary</h5>
+<div class="row g-3 mb-4 text-center">
+    <div class="col-6 col-md-3 reveal">
+        <div class="card stat-card p-3">
+            <div class="stat-icon grad-green"><i class="bi bi-send-fill"></i></div>
+            <h2 class="fw-bold mb-0" data-count="{{ total_requests }}">0</h2>
+            <small class="text-muted">Total Requests</small>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card shadow-sm text-center p-3">
-            <h2 class="text-warning">{{ pending_count }}</h2>
-            <p class="mb-0">Pending</p>
+    <div class="col-6 col-md-3 reveal">
+        <div class="card stat-card p-3">
+            <div class="stat-icon grad-orange"><i class="bi bi-hourglass-split"></i></div>
+            <h2 class="fw-bold mb-0" data-count="{{ pending_count }}">0</h2>
+            <small class="text-muted">Pending</small>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card shadow-sm text-center p-3">
-            <h2 class="text-info">{{ accepted_count }}</h2>
-            <p class="mb-0">Accepted</p>
+    <div class="col-6 col-md-3 reveal">
+        <div class="card stat-card p-3">
+            <div class="stat-icon grad-blue"><i class="bi bi-hand-thumbs-up-fill"></i></div>
+            <h2 class="fw-bold mb-0" data-count="{{ accepted_count }}">0</h2>
+            <small class="text-muted">Accepted</small>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card shadow-sm text-center p-3">
-            <h2 class="text-primary">{{ completed_count }}</h2>
-            <p class="mb-0">Completed</p>
+    <div class="col-6 col-md-3 reveal">
+        <div class="card stat-card p-3">
+            <div class="stat-icon grad-purple"><i class="bi bi-check2-circle"></i></div>
+            <h2 class="fw-bold mb-0" data-count="{{ completed_count }}">0</h2>
+            <small class="text-muted">Completed</small>
         </div>
     </div>
 </div>
-<a href="{% url 'donation_list' %}" class="btn btn-success">Browse Donations</a>
+
+<div class="d-flex gap-2 flex-wrap">
+    <a href="{% url 'donation_list' %}" class="btn btn-success"><i class="bi bi-search"></i> Browse Donations</a>
+    <a href="{% url 'my_requests' %}" class="btn btn-outline-success">My Requests</a>
+</div>
 {% endif %}
 
 {% endblock %}

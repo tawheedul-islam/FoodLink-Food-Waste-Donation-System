@@ -40,7 +40,12 @@ def logout_view(request):
 def home_view(request):
     if request.user.is_authenticated:
         return redirect('dashboard')
-    return render(request, 'accounts/home.html')
+    context = {
+        'donation_count': FoodDonation.objects.count(),
+        'completed_count': FoodDonation.objects.filter(status='completed').count(),
+        'user_count': User.objects.count(),
+    }
+    return render(request, 'accounts/home.html', context)
 
 @login_required
 def dashboard_view(request):

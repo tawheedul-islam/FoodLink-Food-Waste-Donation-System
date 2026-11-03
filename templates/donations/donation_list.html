@@ -1,75 +1,120 @@
 {% extends 'base.html' %}
+{% load rating_extras %}
 {% block title %}Donations{% endblock %}
 {% block content %}
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h3 class="text-success">
-        {% if user.role == 'donor' %}My Donations{% else %}Available Donations{% endif %}
-    </h3>
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+    <div>
+        <h1 class="h3 fw-bold mb-1">
+            {% if user.role == 'donor' %}My Donations{% else %}Available Donations{% endif %}
+        </h1>
+        <p class="text-muted mb-0">
+            {% if user.role == 'donor' %}Keep track of the food you have shared.{% else %}Find good food nearby before it goes to waste.{% endif %}
+            <span class="donation-count">{{ donations.paginator.count }} result{{ donations.paginator.count|pluralize }}</span>
+        </p>
+    </div>
     {% if user.role == 'donor' %}
-        <a href="{% url 'donation_create' %}" class="btn btn-success">+ Post New Donation</a>
+        <a href="{% url 'donation_create' %}" class="btn btn-success"><i class="bi bi-plus-circle"></i> Post New Donation</a>
     {% endif %}
 </div>
 
-<form method="GET" class="row g-2 mb-4">
-    <div class="col-md-4">
-        <input type="text" name="q" class="form-control" placeholder="Search by food name..." value="{{ query }}">
-    </div>
-    <div class="col-md-3">
-        <select name="category" class="form-select">
-            <option value="">All Categories</option>
-            {% for value, label in category_choices %}
-                <option value="{{ value }}" {% if selected_category == value %}selected{% endif %}>{{ label }}</option>
-            {% endfor %}
-        </select>
-    </div>
-    <div class="col-md-3">
-        <input type="text" name="location" class="form-control" placeholder="Filter by location..." value="{{ location }}">
-    </div>
-    <div class="col-md-2">
-        <button type="submit" class="btn btn-outline-success w-100">Filter</button>
-    </div>
-</form>
+<div class="card donation-filters p-3 p-md-4 mb-4">
+    <form method="GET" class="row g-3 align-items-end">
+        <div class="col-12 col-md-4">
+            <label class="form-label small fw-semibold" for="donation-search">Search food</label>
+            <div class="input-group">
+                <span class="input-group-text" aria-hidden="true"><i class="bi bi-search"></i></span>
+                <input id="donation-search" type="search" name="q" class="form-control" placeholder="e.g. fresh vegetables" value="{{ query }}">
+            </div>
+        </div>
+        <div class="col-12 col-md-3">
+            <label class="form-label small fw-semibold" for="donation-category">Category</label>
+            <select id="donation-category" name="category" class="form-select">
+                <option value="">All Categories</option>
+                {% for value, label in category_choices %}
+                    <option value="{{ value }}" {% if selected_category == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-12 col-md-3">
+            <label class="form-label small fw-semibold" for="donation-location">Pickup location</label>
+            <div class="input-group">
+                <span class="input-group-text" aria-hidden="true"><i class="bi bi-geo-alt"></i></span>
+                <input id="donation-location" type="search" name="location" class="form-control" placeholder="Area or city" value="{{ location }}">
+            </div>
+        </div>
+        <div class="col-12 col-md-2 d-flex gap-2">
+            <button type="submit" class="btn btn-success flex-grow-1"><i class="bi bi-funnel me-1"></i>Apply</button>
+            {% if query or selected_category or location %}
+                <a href="{% url 'donation_list' %}" class="btn btn-outline-secondary" aria-label="Clear all filters" title="Clear all filters"><i class="bi bi-arrow-counterclockwise"></i></a>
+            {% endif %}
+        </div>
+    </form>
+</div>
 
-<div class="row">
+<div class="row g-4">
     {% for donation in donations %}
-    <div class="col-md-4 mb-4">
-        <div class="card shadow-sm h-100">
-            <div class="card-body">
+    <div class="col-md-6 col-xl-4 reveal">
+        <div class="card donation-card h-100">
+            <div class="card-img-wrap">
                 {% if donation.image %}
-                    <img src="{{ donation.image.url }}" class="card-img-top" style="height: 180px; object-fit: cover; border-radius: 12px 12px 0 0;">
+                    <img src="{{ donation.image.url }}" alt="{{ donation.food_name }}">
+                {% else %}
+                    <div class="img-placeholder"><i class="bi bi-basket2-fill"></i></div>
                 {% endif %}
-                <h5 class="card-title">{{ donation.food_name }}</h5>
-                <span class="badge bg-secondary mb-2">{{ donation.category|title }}</span>
-                <span class="badge bg-info text-dark mb-2">{{ donation.status|title }}</span>
-                <p class="card-text mb-1"><strong>Quantity:</strong> {{ donation.quantity }}</p>
-                <p class="card-text mb-1"><strong>Pickup:</strong> {{ donation.pickup_location }}</p>
+                <span class="category-pill">{{ donation.get_category_display }}</span>
+                <span class="status-pill status-{{ donation.status }}">{{ donation.status|title }}</span>
+            </div>
+            <div class="card-body d-flex flex-column">
+                <h2 class="h5 fw-semibold mb-1">{{ donation.food_name }}</h2>
                 {% if donation.donor.average_rating %}
-    <p class="card-text mb-1"><strong>Donor Rating:</strong> {{ donation.donor.average_rating }} ★</p>
-{% endif %}
-                <p class="card-text mb-1"><strong>Expires:</strong> {{ donation.expiry_time }}</p>
-                <a href="{% url 'donation_detail' donation.pk %}" class="btn btn-outline-success btn-sm mt-2">View Details</a>
+                <div class="donor-rating mb-3" aria-label="Donor rating: {{ donation.donor.average_rating }} out of 5">
+                    <span class="text-warning" aria-hidden="true">{% for i in donation.donor.average_rating|star_range %}★{% endfor %}{% for i in donation.donor.average_rating|empty_star_range %}☆{% endfor %}</span>
+                    <small class="text-muted">{{ donation.donor.average_rating }} <span class="visually-hidden">out of 5</span></small>
+                </div>
+                {% endif %}
+                <ul class="donation-meta list-unstyled small mb-3">
+                    <li><i class="bi bi-box-seam text-success" aria-hidden="true"></i><span>{{ donation.quantity }}</span></li>
+                    <li><i class="bi bi-geo-alt text-success" aria-hidden="true"></i><span>{{ donation.pickup_location }}</span></li>
+                    <li><i class="bi bi-clock text-success" aria-hidden="true"></i><span class="countdown fw-semibold" data-expiry="{{ donation.expiry_time|date:'c' }}"></span></li>
+                </ul>
+                <a href="{% url 'donation_detail' donation.pk %}" class="btn btn-success w-100 mt-auto">View details <i class="bi bi-arrow-right ms-1" aria-hidden="true"></i></a>
             </div>
         </div>
     </div>
     {% empty %}
-    <p class="text-muted">No donations found.</p>
+    <div class="col-12">
+        <div class="donation-empty-state text-center px-3 py-5">
+            <div class="empty-state-icon"><i class="bi {% if query or selected_category or location %}bi-search{% else %}bi-basket2{% endif %}" aria-hidden="true"></i></div>
+            <h2 class="h5 fw-semibold mt-3">
+                {% if query or selected_category or location %}No donations match those filters{% else %}No donations available right now{% endif %}
+            </h2>
+            <p class="text-muted mb-3">
+                {% if query or selected_category or location %}Try a different search or clear your filters to see all available donations.{% else %}Please check back soon for newly shared food.{% endif %}
+            </p>
+            {% if query or selected_category or location %}
+                <a href="{% url 'donation_list' %}" class="btn btn-outline-success">Clear filters</a>
+            {% elif user.role == 'donor' %}
+                <a href="{% url 'donation_create' %}" class="btn btn-success"><i class="bi bi-plus-circle me-1"></i>Post a donation</a>
+            {% endif %}
+        </div>
+    </div>
     {% endfor %}
 </div>
 
 {% if donations.has_other_pages %}
-<nav class="mt-4">
+<nav class="mt-4" aria-label="Donation pages">
     <ul class="pagination justify-content-center">
         {% if donations.has_previous %}
-            <li class="page-item"><a class="page-link" href="?page={{ donations.previous_page_number }}">Previous</a></li>
+            <li class="page-item"><a class="page-link" href="{% querystring page=donations.previous_page_number %}">Previous</a></li>
         {% endif %}
         {% for num in donations.paginator.page_range %}
             <li class="page-item {% if donations.number == num %}active{% endif %}">
-                <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                <a class="page-link" href="{% querystring page=num %}" {% if donations.number == num %}aria-current="page"{% endif %}>{{ num }}</a>
             </li>
         {% endfor %}
         {% if donations.has_next %}
-            <li class="page-item"><a class="page-link" href="?page={{ donations.next_page_number }}">Next</a></li>
+            <li class="page-item"><a class="page-link" href="{% querystring page=donations.next_page_number %}">Next</a></li>
         {% endif %}
     </ul>
 </nav>

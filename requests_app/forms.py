@@ -6,6 +6,9 @@ class RatingForm(forms.ModelForm):
         model = Rating
         fields = ['score', 'comment']
         widgets = {
-            'score': forms.Select(attrs={'class': 'form-select'}),
+            'score': forms.Select(
+                choices=[(5,'★★★★★ Excellent'),(4,'★★★★☆ Good'),(3,'★★★☆☆ Average'),(2,'★★☆☆☆ Poor'),(1,'★☆☆☆☆ Very Poor')],
+                attrs={'class': 'form-select'}
+            ),
             'comment': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Optional feedback about this donation...'}),
         }

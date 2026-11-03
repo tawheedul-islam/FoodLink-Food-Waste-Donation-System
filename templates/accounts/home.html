@@ -1,37 +1,90 @@
 {% extends 'base.html' %}
-{% block title %}Welcome to FoodLink{% endblock %}
-{% block content %}
+{% block title %}Welcome{% endblock %}
 
-<div class="hero-section text-center mb-5">
+{% block hero %}
+<section class="hero text-center">
     <div class="container">
-        <h1 class="fs-2 fw-bold">Connecting Surplus Food to Those Who Need It 🍽️</h1>
-        <p class="lead mt-3">FoodLink helps restaurants, hotels, and households donate surplus food to NGOs and shelters - reducing waste, one meal at a time.</p>
-        <div class="mt-4">
-            <a href="{% url 'register' %}" class="btn btn-light btn-lg me-2">Get Started</a>
-            <a href="{% url 'login' %}" class="btn btn-outline-light btn-lg">Login</a>
+        <span class="badge rounded-pill hero-badge mb-3"><i class="bi bi-heart-fill"></i> Zero food waste. Zero hunger.</span>
+        <h1 class="fw-bold mb-3">Turn surplus food into <span class="text-warning">someone's meal</span></h1>
+        <p class="lead mb-4 mx-auto" style="max-width: 640px;">
+            FoodLink connects restaurants, hotels and households with NGOs and shelters, so good food reaches people instead of the bin.
+        </p>
+        <a href="{% url 'register' %}" class="btn btn-light btn-lg px-4 me-2"><i class="bi bi-rocket-takeoff"></i> Get Started</a>
+        <a href="{% url 'login' %}" class="btn btn-outline-light btn-lg px-4">Login</a>
+    </div>
+</section>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3 text-center" style="margin-top: -85px; position: relative; z-index: 2;">
+    <div class="col-md-4 reveal">
+        <div class="card stat-card p-3">
+            <div class="stat-icon grad-green"><i class="bi bi-basket2-fill"></i></div>
+            <h2 class="fw-bold mb-0" data-count="{{ donation_count }}">0</h2>
+            <p class="text-muted mb-0">Donations Posted</p>
+        </div>
+    </div>
+    <div class="col-md-4 reveal">
+        <div class="card stat-card p-3">
+            <div class="stat-icon grad-blue"><i class="bi bi-check2-circle"></i></div>
+            <h2 class="fw-bold mb-0" data-count="{{ completed_count }}">0</h2>
+            <p class="text-muted mb-0">Meals Delivered</p>
+        </div>
+    </div>
+    <div class="col-md-4 reveal">
+        <div class="card stat-card p-3">
+            <div class="stat-icon grad-orange"><i class="bi bi-people-fill"></i></div>
+            <h2 class="fw-bold mb-0" data-count="{{ user_count }}">0</h2>
+            <p class="text-muted mb-0">Community Members</p>
         </div>
     </div>
 </div>
 
-<div class="row text-center g-4 mb-5">
-    <div class="col-md-4">
-        <div class="card shadow-sm p-4 h-100">
-            <h4 class="text-success">🍲 Post Food</h4>
-            <p class="text-muted mb-0">Donors can easily list surplus food with quantity, category, and pickup details.</p>
+<h3 class="text-center fw-bold mt-5 mb-4 reveal">How it works</h3>
+<div class="row g-4 text-center">
+    <div class="col-md-4 reveal">
+        <div class="card feature-card p-4 h-100">
+            <div class="step-number">1</div>
+            <h5 class="fw-semibold">Donor posts food</h5>
+            <p class="text-muted mb-0">Add food details, quantity, photo and pickup location in under a minute.</p>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card shadow-sm p-4 h-100">
-            <h4 class="text-success">🔍 Find & Request</h4>
-            <p class="text-muted mb-0">Receivers browse available donations and request what fits their needs.</p>
+    <div class="col-md-4 reveal">
+        <div class="card feature-card p-4 h-100">
+            <div class="step-number">2</div>
+            <h5 class="fw-semibold">Receiver requests</h5>
+            <p class="text-muted mb-0">Browse, search and filter nearby donations, then send a request.</p>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card shadow-sm p-4 h-100">
-            <h4 class="text-success">✅ Track Pickup</h4>
-            <p class="text-muted mb-0">Every donation is tracked from posting to completion for full transparency.</p>
+    <div class="col-md-4 reveal">
+        <div class="card feature-card p-4 h-100">
+            <div class="step-number">3</div>
+            <h5 class="fw-semibold">Pickup &amp; rate</h5>
+            <p class="text-muted mb-0">Donor accepts, food is collected, and the receiver rates the donor.</p>
         </div>
     </div>
 </div>
 
+<div class="row g-4 mt-4">
+    <div class="col-md-6 reveal">
+        <div class="card feature-card p-4 h-100">
+            <h5 class="fw-bold text-success"><i class="bi bi-shop"></i> For Donors</h5>
+            <ul class="mb-0 text-muted">
+                <li>Post surplus food with photo</li>
+                <li>Accept or reject requests</li>
+                <li>Build trust with ratings</li>
+            </ul>
+        </div>
+    </div>
+    <div class="col-md-6 reveal">
+        <div class="card feature-card p-4 h-100">
+            <h5 class="fw-bold text-success"><i class="bi bi-houses"></i> For Receivers</h5>
+            <ul class="mb-0 text-muted">
+                <li>Find food with live expiry countdown</li>
+                <li>Request and track status</li>
+                <li>Get instant notifications</li>
+            </ul>
+        </div>
+    </div>
+</div>
 {% endblock %}
