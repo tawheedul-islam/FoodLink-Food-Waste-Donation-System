@@ -14,6 +14,7 @@ class DonationRequest(models.Model):
     receiver = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='requests')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     request_date = models.DateTimeField(auto_now_add=True)
+    pickup_time = models.DateTimeField(blank=True, null=True)
 
     def __str__(self):
         return f"{self.receiver.username} → {self.donation.food_name} ({self.status})"

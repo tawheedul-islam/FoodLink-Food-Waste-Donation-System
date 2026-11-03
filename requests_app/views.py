@@ -1,8 +1,9 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.utils import timezone
 from donations.models import FoodDonation
-from .forms import RatingForm
+from .forms import PickupRequestForm, RatingForm
 from .models import DonationRequest, Notification, Rating
 
 @login_required
@@ -17,18 +18,39 @@ def create_request(request, pk):
     if already_requested:
         messages.warning(request, 'You have already requested this donation.')
         return redirect('donation_detail', pk=pk)
+    if donation.status != 'posted' or donation.expiry_time <= timezone.now():
+        messages.error(request, 'This donation is no longer available to request.')
+        return redirect('donation_detail', pk=pk)
 
-    DonationRequest.objects.create(donation=donation, receiver=request.user)
-    donation.status = 'requested'
-    donation.save()
+    if request.method == 'POST':
+        form = PickupRequestForm(request.POST, donation=donation)
+        if form.is_valid():
+            pickup_request = DonationRequest.objects.create(
+                donation=donation,
+                receiver=request.user,
+                pickup_time=form.cleaned_data['pickup_time'],
+            )
+            donation.status = 'requested'
+            donation.save(update_fields=['status'])
 
-    Notification.objects.create(
-        user=donation.donor,
-        message=f"{request.user.username} requested your donation '{donation.food_name}'.",
-        donation=donation
-    )
-    messages.success(request, 'Request submitted successfully!')
-    return redirect('my_requests')
+            local_pickup_time = timezone.localtime(pickup_request.pickup_time)
+            Notification.objects.create(
+                user=donation.donor,
+                message=(
+                    f"{request.user.username} requested '{donation.food_name}' "
+                    f"for pickup at {local_pickup_time:%d %b %Y, %H:%M}."
+                ),
+                donation=donation,
+            )
+            messages.success(request, 'Pickup request submitted. The donor will confirm your time.')
+            return redirect('my_requests')
+    else:
+        form = PickupRequestForm(donation=donation)
+
+    return render(request, 'requests_app/create_request.html', {
+        'form': form,
+        'donation': donation,
+    })
 
 @login_required
 def my_requests(request):
@@ -45,7 +67,24 @@ def incoming_requests(request):
 
 @login_required
 def update_request_status(request, pk, new_status):
+    if request.method != 'POST':
+        messages.error(request, 'Use the request actions to update its status.')
+        return redirect('incoming_requests')
+
+    if new_status not in {'accepted', 'rejected', 'completed'}:
+        messages.error(request, 'Invalid request status.')
+        return redirect('incoming_requests')
+
     req = get_object_or_404(DonationRequest, pk=pk, donation__donor=request.user)
+    if (new_status in {'accepted', 'rejected'} and req.status != 'pending') or (
+        new_status == 'completed' and req.status != 'accepted'
+    ):
+        messages.error(request, 'This request can no longer be updated to that status.')
+        return redirect('incoming_requests')
+    if new_status == 'accepted' and req.pickup_time and req.pickup_time <= timezone.now():
+        messages.error(request, 'The proposed pickup time has passed. Ask the receiver to submit a new request.')
+        return redirect('incoming_requests')
+
     req.status = new_status
     req.save()
 
@@ -61,7 +100,12 @@ def update_request_status(request, pk, new_status):
 
     Notification.objects.create(
         user=req.receiver,
-        message=f"Your request for '{req.donation.food_name}' was {new_status}.",
+        message=(
+            f"Your request for '{req.donation.food_name}' was accepted. "
+            f"Pickup is confirmed for {timezone.localtime(req.pickup_time):%d %b %Y, %H:%M}."
+            if new_status == 'accepted' and req.pickup_time
+            else f"Your request for '{req.donation.food_name}' was {new_status}."
+        ),
         donation=req.donation
     )
     messages.success(request, f'Request marked as {new_status}.')

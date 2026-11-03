@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block title %}Schedule Pickup{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-body p-4 p-md-5">
+                <span class="badge rounded-pill text-bg-success mb-3"><i class="bi bi-calendar-check me-1" aria-hidden="true"></i>Pickup scheduling</span>
+                <h1 class="h3 fw-bold mb-2">Request {{ donation.food_name }}</h1>
+                <p class="text-muted mb-4">Choose a time that works for pickup. The donor will confirm it when they accept your request.</p>
+
+                <div class="pickup-summary rounded-3 p-3 mb-4">
+                    <p class="mb-1"><i class="bi bi-geo-alt text-success me-2" aria-hidden="true"></i><strong>Pickup location:</strong> {{ donation.pickup_location }}</p>
+                    {% if donation.pickup_window_start and donation.pickup_window_end %}
+                        <p class="mb-0"><i class="bi bi-clock text-success me-2" aria-hidden="true"></i><strong>Available:</strong> {{ donation.pickup_window_start|date:"D, d M Y, H:i" }} – {{ donation.pickup_window_end|date:"D, d M Y, H:i" }}</p>
+                    {% else %}
+                        <p class="mb-0"><i class="bi bi-clock text-success me-2" aria-hidden="true"></i>The donor has not set a pickup window. Propose a time before {{ donation.expiry_time|date:"D, d M Y, H:i" }}.</p>
+                    {% endif %}
+                </div>
+                <div class="food-safety-panel rounded-3 p-3 mb-4">
+                    <h2 class="h6 fw-bold"><i class="bi bi-shield-check text-success me-1" aria-hidden="true"></i>Food safety &amp; handling</h2>
+                    <p class="small mb-2"><strong>Allergens:</strong> {{ donation.allergen_info|default:"Not provided — contact the donor if you have allergy concerns." }}</p>
+                    {% if donation.storage_instructions %}<p class="small mb-2"><strong>Storage &amp; preparation:</strong> {{ donation.storage_instructions }}</p>{% endif %}
+                    {% if donation.packaging_info %}<p class="small mb-0"><strong>Packaging:</strong> {{ donation.packaging_info }}</p>{% endif %}
+                    <a href="{% url 'donation_detail' donation.pk %}" class="small">View all donation details</a>
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-4">
+                        <label for="{{ form.pickup_time.id_for_label }}" class="form-label fw-semibold">{{ form.pickup_time.label }}</label>
+                        {{ form.pickup_time }}
+                        {% if form.pickup_time.help_text %}<div class="form-text">{{ form.pickup_time.help_text }}</div>{% endif %}
+                        {% for error in form.pickup_time.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                    </div>
+                    {% for error in form.non_field_errors %}<div class="alert alert-danger">{{ error }}</div>{% endfor %}
+                    <div class="d-flex flex-wrap gap-2">
+                        <button type="submit" class="btn btn-success"><i class="bi bi-send me-1" aria-hidden="true"></i>Send request</button>
+                        <a href="{% url 'donation_detail' donation.pk %}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

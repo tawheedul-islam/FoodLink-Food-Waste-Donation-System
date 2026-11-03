@@ -12,14 +12,27 @@
                 <p class="mb-1"><strong>Requested by:</strong> {{ req.receiver.username }}</p>
                 <p class="mb-1"><strong>Quantity:</strong> {{ req.donation.quantity }}</p>
                 <p class="mb-2"><strong>Requested on:</strong> {{ req.request_date|date:"d M Y, H:i" }}</p>
+                {% if req.pickup_time %}
+                    <div class="pickup-summary rounded-3 p-3 mb-3">
+                        <div class="small text-muted">Proposed pickup time</div>
+                        <strong><i class="bi bi-calendar-event text-success me-1" aria-hidden="true"></i>{{ req.pickup_time|date:"D, d M Y, H:i" }}</strong>
+                        {% if req.status == 'accepted' %}<div class="small text-success mt-1">Confirmed</div>{% endif %}
+                    </div>
+                {% endif %}
 
                 {% if req.status == 'pending' %}
                     <span class="badge bg-warning text-dark mb-2">Pending</span><br>
-                    <a href="{% url 'update_request_status' req.pk 'accepted' %}" class="btn btn-success btn-sm mt-2">Accept</a>
-                    <a href="{% url 'update_request_status' req.pk 'rejected' %}" class="btn btn-danger btn-sm mt-2">Reject</a>
+                    <form method="post" action="{% url 'update_request_status' req.pk 'accepted' %}" class="d-inline">
+                        {% csrf_token %}<button type="submit" class="btn btn-success btn-sm mt-2">Confirm time &amp; accept</button>
+                    </form>
+                    <form method="post" action="{% url 'update_request_status' req.pk 'rejected' %}" class="d-inline">
+                        {% csrf_token %}<button type="submit" class="btn btn-outline-danger btn-sm mt-2">Reject</button>
+                    </form>
                 {% elif req.status == 'accepted' %}
                     <span class="badge bg-success mb-2">Accepted</span><br>
-                    <a href="{% url 'update_request_status' req.pk 'completed' %}" class="btn btn-primary btn-sm mt-2">Mark Completed</a>
+                    <form method="post" action="{% url 'update_request_status' req.pk 'completed' %}">
+                        {% csrf_token %}<button type="submit" class="btn btn-primary btn-sm mt-2">Mark Completed</button>
+                    </form>
                 {% elif req.status == 'rejected' %}
                     <span class="badge bg-danger">Rejected</span>
                 {% elif req.status == 'completed' %}

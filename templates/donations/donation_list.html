@@ -49,8 +49,60 @@
                 <a href="{% url 'donation_list' %}" class="btn btn-outline-secondary" aria-label="Clear all filters" title="Clear all filters"><i class="bi bi-arrow-counterclockwise"></i></a>
             {% endif %}
         </div>
+        {% if user.role == 'receiver' %}
+        <div class="col-12 col-md-4">
+            <label class="form-label small fw-semibold" for="donation-radius">Nearby radius</label>
+            <select id="donation-radius" name="radius" class="form-select">
+                {% for value in radius_choices %}
+                    <option value="{{ value }}" {% if radius == value|stringformat:"s" %}selected{% endif %}>Within {{ value }} km</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
     </form>
 </div>
+
+{% if user.role == 'receiver' %}
+<div class="nearby-search rounded-3 p-3 p-md-4 mb-4">
+    {% if has_search_location %}
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div>
+                <h2 class="h6 fw-bold mb-1"><i class="bi bi-geo-alt-fill text-success me-1" aria-hidden="true"></i>Nearby search is on</h2>
+                <p class="small text-muted mb-0">Showing donations within {{ radius }} km, nearest first. Your approximate location stays in this session until cleared.</p>
+                {% if unlocated_count %}
+                    <p class="small text-muted mb-0">{{ unlocated_count }} donation{{ unlocated_count|pluralize }} without pickup coordinates {{ unlocated_count|pluralize:"is,are" }} not included.</p>
+                {% endif %}
+            </div>
+            <form method="post" action="{% url 'donation_location' %}{% querystring %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="clear">
+                <button type="submit" class="btn btn-outline-secondary btn-sm"><i class="bi bi-geo me-1" aria-hidden="true"></i>Clear my location</button>
+            </form>
+        </div>
+    {% else %}
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div>
+                <h2 class="h6 fw-bold mb-1"><i class="bi bi-compass text-success me-1" aria-hidden="true"></i>Find donations near you</h2>
+                <p class="small text-muted mb-0">Share your approximate location to sort donations by distance. Your browser will ask permission; coordinates are kept only in this session.</p>
+            </div>
+            <form id="nearby-location-form" method="post" action="{% url 'donation_location' %}{% querystring %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="set">
+                <input type="hidden" name="latitude" id="nearby-latitude">
+                <input type="hidden" name="longitude" id="nearby-longitude">
+                <button id="nearby-location-button" type="button" class="btn btn-outline-success">
+                    <i class="bi bi-crosshair me-1" aria-hidden="true"></i>Use my location
+                </button>
+                <span id="nearby-location-status" class="small d-block mt-2" role="status" aria-live="polite"></span>
+                <input type="hidden" name="q" value="{{ query }}">
+                <input type="hidden" name="category" value="{{ selected_category }}">
+                <input type="hidden" name="location" value="{{ location }}">
+                <input type="hidden" name="radius" value="{{ radius }}">
+            </form>
+        </div>
+    {% endif %}
+</div>
+{% endif %}
 
 <div class="row g-4">
     {% for donation in donations %}
@@ -76,8 +128,12 @@
                 <ul class="donation-meta list-unstyled small mb-3">
                     <li><i class="bi bi-box-seam text-success" aria-hidden="true"></i><span>{{ donation.quantity }}</span></li>
                     <li><i class="bi bi-geo-alt text-success" aria-hidden="true"></i><span>{{ donation.pickup_location }}</span></li>
+                    {% if has_search_location %}<li><i class="bi bi-signpost-split text-success" aria-hidden="true"></i><span>{{ donation.distance_km|floatformat:1 }} km away</span></li>{% endif %}
                     <li><i class="bi bi-clock text-success" aria-hidden="true"></i><span class="countdown fw-semibold" data-expiry="{{ donation.expiry_time|date:'c' }}"></span></li>
                 </ul>
+                {% if donation.allergen_info %}
+                    <p class="donation-allergen-note small mb-3"><i class="bi bi-exclamation-triangle me-1" aria-hidden="true"></i><strong>Allergens:</strong> {{ donation.allergen_info|truncatechars:90 }}</p>
+                {% endif %}
                 <a href="{% url 'donation_detail' donation.pk %}" class="btn btn-success w-100 mt-auto">View details <i class="bi bi-arrow-right ms-1" aria-hidden="true"></i></a>
             </div>
         </div>
@@ -87,12 +143,18 @@
         <div class="donation-empty-state text-center px-3 py-5">
             <div class="empty-state-icon"><i class="bi {% if query or selected_category or location %}bi-search{% else %}bi-basket2{% endif %}" aria-hidden="true"></i></div>
             <h2 class="h5 fw-semibold mt-3">
-                {% if query or selected_category or location %}No donations match those filters{% else %}No donations available right now{% endif %}
+                {% if has_search_location %}No donations found within {{ radius }} km{% elif query or selected_category or location %}No donations match those filters{% else %}No donations available right now{% endif %}
             </h2>
             <p class="text-muted mb-3">
-                {% if query or selected_category or location %}Try a different search or clear your filters to see all available donations.{% else %}Please check back soon for newly shared food.{% endif %}
+                {% if has_search_location %}Try a larger nearby radius, or clear your location to browse all available donations.{% elif query or selected_category or location %}Try a different search or clear your filters to see all available donations.{% else %}Please check back soon for newly shared food.{% endif %}
             </p>
-            {% if query or selected_category or location %}
+            {% if has_search_location %}
+                <form method="post" action="{% url 'donation_location' %}{% querystring %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="clear">
+                    <button type="submit" class="btn btn-outline-success">Clear my location</button>
+                </form>
+            {% elif query or selected_category or location %}
                 <a href="{% url 'donation_list' %}" class="btn btn-outline-success">Clear filters</a>
             {% elif user.role == 'donor' %}
                 <a href="{% url 'donation_create' %}" class="btn btn-success"><i class="bi bi-plus-circle me-1"></i>Post a donation</a>
@@ -118,6 +180,42 @@
         {% endif %}
     </ul>
 </nav>
+{% endif %}
+
+{% if user.role == 'receiver' and not has_search_location %}
+<script>
+    (function () {
+        var button = document.getElementById('nearby-location-button');
+        var status = document.getElementById('nearby-location-status');
+        if (!button || !status) return;
+
+        button.addEventListener('click', function () {
+            if (!navigator.geolocation) {
+                status.textContent = 'Location is not available in this browser. You can still browse or search by pickup area.';
+                status.classList.add('text-danger');
+                return;
+            }
+
+            button.disabled = true;
+            status.classList.remove('text-danger');
+            status.textContent = 'Waiting for location permission…';
+            navigator.geolocation.getCurrentPosition(function (position) {
+                document.getElementById('nearby-latitude').value = position.coords.latitude.toFixed(3);
+                document.getElementById('nearby-longitude').value = position.coords.longitude.toFixed(3);
+                document.getElementById('nearby-location-form').submit();
+            }, function (error) {
+                var messages = {
+                    1: 'Location permission was denied. Allow it in your browser settings to use nearby search.',
+                    2: 'Your location could not be determined. Try again or search by pickup area.',
+                    3: 'Location lookup timed out. Try again or search by pickup area.'
+                };
+                status.textContent = messages[error.code] || 'Location could not be retrieved. Try again or search by pickup area.';
+                status.classList.add('text-danger');
+                button.disabled = false;
+            }, { enableHighAccuracy: false, maximumAge: 300000, timeout: 10000 });
+        });
+    }());
+</script>
 {% endif %}
 
 {% endblock %}

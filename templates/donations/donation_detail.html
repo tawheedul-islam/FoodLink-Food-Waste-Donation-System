@@ -12,7 +12,30 @@
         <hr>
         <p><strong>Quantity:</strong> {{ donation.quantity }}</p>
         <p><strong>Description:</strong> {{ donation.description|default:"N/A" }}</p>
+        <section class="food-safety-panel rounded-3 p-3 p-md-4 my-4" aria-labelledby="food-safety-heading">
+            <h2 id="food-safety-heading" class="h5 fw-bold mb-3"><i class="bi bi-shield-check text-success me-2" aria-hidden="true"></i>Food safety &amp; handling</h2>
+            <div class="mb-3">
+                <h3 class="h6 fw-semibold mb-1">Allergen information</h3>
+                <p class="mb-0">{% if donation.allergen_info %}{{ donation.allergen_info|linebreaksbr }}{% else %}<span class="text-warning-emphasis"><i class="bi bi-exclamation-triangle me-1" aria-hidden="true"></i>Not provided. Contact the donor before pickup if you have allergy concerns.</span>{% endif %}</p>
+            </div>
+            {% if donation.storage_instructions %}
+                <div class="mb-3">
+                    <h3 class="h6 fw-semibold mb-1">Storage &amp; preparation</h3>
+                    <p class="mb-0">{{ donation.storage_instructions|linebreaksbr }}</p>
+                </div>
+            {% endif %}
+            {% if donation.packaging_info %}
+                <div>
+                    <h3 class="h6 fw-semibold mb-1">Packaging</h3>
+                    <p class="mb-0">{{ donation.packaging_info|linebreaksbr }}</p>
+                </div>
+            {% endif %}
+            <p class="small text-muted mb-0 mt-3">Food details are provided by the donor. Please confirm any dietary or allergy concerns directly before consuming.</p>
+        </section>
         <p><strong>Pickup Location:</strong> {{ donation.pickup_location }}</p>
+        {% if donation.pickup_window_start and donation.pickup_window_end %}
+            <p><strong>Pickup Availability:</strong> {{ donation.pickup_window_start|date:"D, d M Y, H:i" }} – {{ donation.pickup_window_end|date:"D, d M Y, H:i" }}</p>
+        {% endif %}
         <p><strong>Expiry Time:</strong> {{ donation.expiry_time }}</p>
         <p><strong>Posted by:</strong> {{ donation.donor.username }}
     {% if donation.donor.average_rating %}
@@ -39,14 +62,21 @@
             <div class="card-body">
                 <p class="mb-1"><strong>Requested by:</strong> {{ req.receiver.username }}</p>
                 <p class="mb-2"><strong>Date:</strong> {{ req.request_date|date:"d M Y, H:i" }}</p>
+                {% if req.pickup_time %}<p class="mb-2"><strong>Pickup time:</strong> {{ req.pickup_time|date:"D, d M Y, H:i" }}{% if req.status == 'accepted' %} <span class="badge text-bg-success">Confirmed</span>{% endif %}</p>{% endif %}
 
                 {% if req.status == 'pending' %}
                     <span class="badge bg-warning text-dark mb-2">Pending</span><br>
-                    <a href="{% url 'update_request_status' req.pk 'accepted' %}" class="btn btn-success btn-sm mt-1">Accept</a>
-                    <a href="{% url 'update_request_status' req.pk 'rejected' %}" class="btn btn-danger btn-sm mt-1">Reject</a>
+                    <form method="post" action="{% url 'update_request_status' req.pk 'accepted' %}" class="d-inline">
+                        {% csrf_token %}<button type="submit" class="btn btn-success btn-sm mt-1">Confirm time &amp; accept</button>
+                    </form>
+                    <form method="post" action="{% url 'update_request_status' req.pk 'rejected' %}" class="d-inline">
+                        {% csrf_token %}<button type="submit" class="btn btn-outline-danger btn-sm mt-1">Reject</button>
+                    </form>
                 {% elif req.status == 'accepted' %}
                     <span class="badge bg-success mb-2">Accepted</span><br>
-                    <a href="{% url 'update_request_status' req.pk 'completed' %}" class="btn btn-primary btn-sm mt-1">Mark Completed</a>
+                    <form method="post" action="{% url 'update_request_status' req.pk 'completed' %}">
+                        {% csrf_token %}<button type="submit" class="btn btn-primary btn-sm mt-1">Mark Completed</button>
+                    </form>
                 {% elif req.status == 'rejected' %}
                     <span class="badge bg-danger">Rejected</span>
                 {% elif req.status == 'completed' %}

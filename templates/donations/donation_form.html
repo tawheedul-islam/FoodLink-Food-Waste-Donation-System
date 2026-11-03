@@ -9,15 +9,32 @@
                 <form method="POST" enctype="multipart/form-data">
                     {% csrf_token %}
                     {% for field in form %}
+                        {% if field.name == 'allergen_info' %}
+                            <h2 class="h5 fw-semibold border-top pt-4 mt-4">Food safety &amp; handling</h2>
+                            <p class="small text-muted">Share what you know so receivers can make an informed decision. Please be specific about allergens.</p>
+                        {% endif %}
                         <div class="mb-3">
-                            <label class="form-label">{{ field.label }}</label>
+                            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
                             {{ field }}
+                            {% if field.name == 'pickup_latitude' %}
+                                <small class="form-text text-muted">Optional, but needed for nearby sorting. Find the pickup point's coordinates in your map app, then enter both latitude and longitude.</small>
+                            {% endif %}
+                            {% if field.name == 'pickup_window_start' or field.name == 'pickup_window_end' %}
+                                <small class="form-text text-muted">
+                                    {% if field.name == 'pickup_window_start' %}Start of the time receivers can collect this donation.{% else %}End of the time receivers can collect this donation.{% endif %}
+                                </small>
+                            {% endif %}
+                            {% if field.name == 'allergen_info' %}
+                                <small class="form-text text-muted">If you are unsure, say so. Do not claim food is allergen-free unless you can verify it.</small>
+                            {% endif %}
                             {% for error in field.errors %}
                                 <small class="text-danger d-block">{{ error }}</small>
                             {% endfor %}
                         </div>
                     {% endfor %}
+                    {% for error in form.non_field_errors %}<div class="alert alert-danger">{{ error }}</div>{% endfor %}
                     <button type="submit" class="btn btn-success w-100">{% if editing %}Update Donation{% else %}Post Donation{% endif %}</button>
+                </form>
             </div>
         </div>
     </div>
