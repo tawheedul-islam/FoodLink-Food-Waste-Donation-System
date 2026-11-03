@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import DonationRequest, Notification
+from .models import DonationRequest, Notification, Rating
+
 
 @admin.register(DonationRequest)
 class DonationRequestAdmin(admin.ModelAdmin):
@@ -12,3 +13,8 @@ class DonationRequestAdmin(admin.ModelAdmin):
 class NotificationAdmin(admin.ModelAdmin):
     list_display = ('user', 'message', 'is_read', 'created_at')
     list_filter = ('is_read', 'created_at')
+    
+@admin.register(Rating)
+class RatingAdmin(admin.ModelAdmin):
+    list_display = ('rated_by', 'rated_user', 'score', 'created_at')
+    list_filter = ('score', 'created_at')

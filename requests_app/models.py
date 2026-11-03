@@ -27,3 +27,14 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"{self.user.username}: {self.message[:40]}"
+    
+class Rating(models.Model):
+    donation_request = models.OneToOneField(DonationRequest, on_delete=models.CASCADE, related_name='rating')
+    rated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='ratings_given')
+    rated_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='ratings_received')
+    score = models.IntegerField(choices=[(1,'1'),(2,'2'),(3,'3'),(4,'4'),(5,'5')])
+    comment = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.rated_by.username} rated {self.rated_user.username}: {self.score}★"

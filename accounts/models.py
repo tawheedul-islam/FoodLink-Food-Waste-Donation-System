@@ -13,3 +13,10 @@ class User(AbstractUser):
 
     def __str__(self):
         return f"{self.username} ({self.role})"
+
+    def average_rating(self):
+        from requests_app.models import Rating
+        ratings = Rating.objects.filter(rated_user=self)
+        if ratings.exists():
+            return round(sum(r.score for r in ratings) / ratings.count(), 1)
+        return None

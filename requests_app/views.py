@@ -2,7 +2,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from donations.models import FoodDonation
-from .models import DonationRequest, Notification
+from .forms import RatingForm
+from .models import DonationRequest, Notification, Rating
 
 @login_required
 def create_request(request, pk):
@@ -87,3 +88,29 @@ def notifications(request):
     unread = notes.filter(is_read=False)
     unread.update(is_read=True)
     return render(request, 'requests_app/notifications.html', {'notifications': notes})
+
+@login_required
+def rate_donation(request, pk):
+    req = get_object_or_404(DonationRequest, pk=pk, receiver=request.user)
+
+    if req.status != 'completed':
+        messages.error(request, 'You can only rate completed donations.')
+        return redirect('my_requests')
+
+    if hasattr(req, 'rating'):
+        messages.warning(request, 'You have already rated this donation.')
+        return redirect('my_requests')
+
+    if request.method == 'POST':
+        form = RatingForm(request.POST)
+        if form.is_valid():
+            rating = form.save(commit=False)
+            rating.donation_request = req
+            rating.rated_by = request.user
+            rating.rated_user = req.donation.donor
+            rating.save()
+            messages.success(request, 'Thank you for your feedback!')
+            return redirect('my_requests')
+    else:
+        form = RatingForm()
+    return render(request, 'requests_app/rate_donation.html', {'form': form, 'req': req})

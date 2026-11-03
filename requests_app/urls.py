@@ -8,4 +8,5 @@ urlpatterns = [
     path('update/<int:pk>/<str:new_status>/', views.update_request_status, name='update_request_status'),
     path('cancel/<int:pk>/', views.cancel_request, name='cancel_request'),
     path('notifications/', views.notifications, name='notifications'),
+    path('rate/<int:pk>/', views.rate_donation, name='rate_donation'),
 ]

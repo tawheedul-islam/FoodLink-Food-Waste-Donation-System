@@ -6,6 +6,7 @@ from .forms import RegisterForm, ProfileEditForm
 from .models import User
 from donations.models import FoodDonation
 from requests_app.models import DonationRequest
+from requests_app.models import Rating
 
 
 def register_view(request):
@@ -52,6 +53,9 @@ def dashboard_view(request):
         context['pending_requests_count'] = DonationRequest.objects.filter(
             donation__donor=request.user, status='pending'
         ).count()
+        ratings = Rating.objects.filter(rated_user=request.user).order_by('-created_at')
+        context['ratings'] = ratings
+        context['avg_rating'] = request.user.average_rating()
     elif request.user.role == 'receiver':
         my_requests = DonationRequest.objects.filter(receiver=request.user)
         context['total_requests'] = my_requests.count()

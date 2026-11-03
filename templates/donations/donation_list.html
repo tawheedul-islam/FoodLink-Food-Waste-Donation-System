@@ -44,6 +44,9 @@
                 <span class="badge bg-info text-dark mb-2">{{ donation.status|title }}</span>
                 <p class="card-text mb-1"><strong>Quantity:</strong> {{ donation.quantity }}</p>
                 <p class="card-text mb-1"><strong>Pickup:</strong> {{ donation.pickup_location }}</p>
+                {% if donation.donor.average_rating %}
+    <p class="card-text mb-1"><strong>Donor Rating:</strong> {{ donation.donor.average_rating }} ★</p>
+{% endif %}
                 <p class="card-text mb-1"><strong>Expires:</strong> {{ donation.expiry_time }}</p>
                 <a href="{% url 'donation_detail' donation.pk %}" class="btn btn-outline-success btn-sm mt-2">View Details</a>
             </div>

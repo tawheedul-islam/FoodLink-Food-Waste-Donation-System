@@ -20,7 +20,12 @@
                 {% elif req.status == 'rejected' %}
                     <span class="badge bg-danger">Rejected</span>
                 {% elif req.status == 'completed' %}
-                    <span class="badge bg-primary">Completed</span>
+    <span class="badge bg-primary">Completed</span><br>
+    {% if req.rating %}
+        <small class="text-muted d-block mt-2">You rated: {{ req.rating.score }} ★</small>
+    {% else %}
+        <a href="{% url 'rate_donation' req.pk %}" class="btn btn-outline-warning btn-sm mt-2">Rate Donor</a>
+    {% endif %}
                 {% endif %}
             </div>
         </div>

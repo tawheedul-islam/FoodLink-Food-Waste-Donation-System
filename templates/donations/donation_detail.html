@@ -14,7 +14,11 @@
         <p><strong>Description:</strong> {{ donation.description|default:"N/A" }}</p>
         <p><strong>Pickup Location:</strong> {{ donation.pickup_location }}</p>
         <p><strong>Expiry Time:</strong> {{ donation.expiry_time }}</p>
-        <p><strong>Posted by:</strong> {{ donation.donor.username }}</p>
+        <p><strong>Posted by:</strong> {{ donation.donor.username }}
+    {% if donation.donor.average_rating %}
+        <span class="badge bg-warning text-dark">{{ donation.donor.average_rating }} ★</span>
+    {% endif %}
+</p>
 
         {% if user.role == 'receiver' and donation.status == 'posted' %}
             <a href="{% url 'create_request' donation.pk %}" class="btn btn-success">Request This Donation</a>

@@ -6,6 +6,7 @@ from .forms import FoodDonationForm
 from requests_app.models import DonationRequest
 from django.core.paginator import Paginator
 from django.utils import timezone
+from django.db.models import Avg
 
 
 @login_required
