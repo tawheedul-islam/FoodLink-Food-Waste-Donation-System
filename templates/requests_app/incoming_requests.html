@@ -19,6 +19,7 @@
                         {% if req.status == 'accepted' %}<div class="small text-success mt-1">Confirmed</div>{% endif %}
                     </div>
                 {% endif %}
+                {% include 'requests_app/_request_timeline.html' %}
 
                 {% if req.status == 'pending' %}
                     <span class="badge bg-warning text-dark mb-2">Pending</span><br>

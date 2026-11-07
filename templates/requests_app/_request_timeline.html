@@ -1,0 +1,50 @@
+<section aria-label="Request activity" class="request-timeline-section">
+    <h2 class="small fw-bold text-uppercase text-muted mb-3">Request activity</h2>
+    <ol class="request-timeline">
+        <li class="is-complete">
+            <span class="request-timeline-marker"><i class="bi bi-check-lg" aria-hidden="true"></i></span>
+            <span>
+                <span class="request-timeline-label">Requested</span>
+                <time class="request-timeline-time" datetime="{{ req.request_date|date:'c' }}">{{ req.request_date|date:"d M Y, H:i" }}</time>
+            </span>
+        </li>
+        {% if req.status == 'rejected' %}
+            <li class="is-complete">
+                <span class="request-timeline-marker"><i class="bi bi-x-lg" aria-hidden="true"></i></span>
+                <span>
+                    <span class="request-timeline-label">Request declined</span>
+                    {% if req.rejected_at %}
+                        <time class="request-timeline-time" datetime="{{ req.rejected_at|date:'c' }}">{{ req.rejected_at|date:"d M Y, H:i" }}</time>
+                    {% else %}
+                        <span class="request-timeline-time">Declined (date unavailable)</span>
+                    {% endif %}
+                </span>
+            </li>
+        {% else %}
+            <li class="{% if req.status == 'accepted' or req.status == 'completed' %}is-complete{% elif req.status == 'pending' %}is-current{% endif %}">
+                <span class="request-timeline-marker">
+                    {% if req.status == 'accepted' or req.status == 'completed' %}<i class="bi bi-check-lg" aria-hidden="true"></i>{% endif %}
+                </span>
+                <span>
+                    <span class="request-timeline-label">{% if req.status == 'pending' %}Awaiting donor response{% else %}Accepted{% endif %}</span>
+                    {% if req.accepted_at %}
+                        <time class="request-timeline-time" datetime="{{ req.accepted_at|date:'c' }}">{{ req.accepted_at|date:"d M Y, H:i" }}</time>
+                    {% elif req.status == 'accepted' or req.status == 'completed' %}
+                        <span class="request-timeline-time">Accepted (date unavailable)</span>
+                    {% endif %}
+                </span>
+            </li>
+            <li class="{% if req.status == 'completed' %}is-complete{% elif req.status == 'accepted' %}is-current{% endif %}">
+                <span class="request-timeline-marker">
+                    {% if req.status == 'completed' %}<i class="bi bi-check-lg" aria-hidden="true"></i>{% endif %}
+                </span>
+                <span>
+                    <span class="request-timeline-label">{% if req.status == 'completed' %}Pickup completed{% elif req.status == 'accepted' %}Awaiting pickup{% else %}Pickup &amp; completion{% endif %}</span>
+                    {% if req.completed_at %}
+                        <time class="request-timeline-time" datetime="{{ req.completed_at|date:'c' }}">{{ req.completed_at|date:"d M Y, H:i" }}</time>
+                    {% endif %}
+                </span>
+            </li>
+        {% endif %}
+    </ol>
+</section>

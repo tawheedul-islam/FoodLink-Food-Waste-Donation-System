@@ -18,6 +18,7 @@
                         <strong><i class="bi bi-calendar-event text-success me-1" aria-hidden="true"></i>{{ req.pickup_time|date:"D, d M Y, H:i" }}</strong>
                     </div>
                 {% endif %}
+                {% include 'requests_app/_request_timeline.html' %}
                 {% if req.status == 'pending' %}
                     <span class="badge bg-warning text-dark">Pending</span> <br>
                     <a href="{% url 'cancel_request' req.pk %}" class="btn btn-danger btn-sm mt-2">Cancel Request</a>

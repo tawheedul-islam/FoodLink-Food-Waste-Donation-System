@@ -181,6 +181,63 @@ body {
     color: var(--bs-warning-text-emphasis);
     background: var(--bs-warning-bg-subtle);
 }
+.request-timeline {
+    margin: 0 0 1rem;
+    padding: 0;
+    list-style: none;
+}
+.request-timeline li {
+    position: relative;
+    display: flex;
+    gap: .75rem;
+    min-height: 3.25rem;
+    color: var(--bs-secondary-color);
+}
+.request-timeline li:not(:last-child)::before {
+    position: absolute;
+    top: 1.4rem;
+    bottom: -.1rem;
+    left: .55rem;
+    width: 2px;
+    background: var(--bs-border-color);
+    content: "";
+}
+.request-timeline-marker {
+    z-index: 1;
+    display: grid;
+    flex: 0 0 1.2rem;
+    width: 1.2rem;
+    height: 1.2rem;
+    place-items: center;
+    margin-top: .15rem;
+    border: 2px solid var(--bs-border-color);
+    border-radius: 50%;
+    background: var(--bs-body-bg);
+    font-size: .65rem;
+}
+.request-timeline li.is-complete,
+.request-timeline li.is-current {
+    color: var(--bs-body-color);
+}
+.request-timeline li.is-complete .request-timeline-marker {
+    border-color: var(--fl-green);
+    color: #fff;
+    background: var(--fl-green);
+}
+.request-timeline li.is-current .request-timeline-marker {
+    border-color: var(--fl-green);
+    box-shadow: 0 0 0 3px rgba(25, 135, 84, .14);
+}
+.request-timeline-label {
+    display: block;
+    font-size: .875rem;
+    font-weight: 600;
+}
+.request-timeline-time {
+    display: block;
+    color: var(--bs-secondary-color);
+    font-size: .75rem;
+}
 
 /* ---------- Stat / feature ---------- */
 .stat-icon {

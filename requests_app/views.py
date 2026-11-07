@@ -86,7 +86,13 @@ def update_request_status(request, pk, new_status):
         return redirect('incoming_requests')
 
     req.status = new_status
-    req.save()
+    status_time_field = {
+        'accepted': 'accepted_at',
+        'rejected': 'rejected_at',
+        'completed': 'completed_at',
+    }[new_status]
+    setattr(req, status_time_field, timezone.now())
+    req.save(update_fields=['status', status_time_field])
 
     if new_status == 'accepted':
         req.donation.status = 'accepted'

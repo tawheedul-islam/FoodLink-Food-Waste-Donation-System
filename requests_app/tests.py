@@ -61,10 +61,59 @@ class PickupSchedulingTests(TestCase):
         self.assertRedirects(response, reverse('incoming_requests'))
         request.refresh_from_db()
         self.assertEqual(request.status, 'accepted')
+        self.assertIsNotNone(request.accepted_at)
         self.assertTrue(Notification.objects.filter(
             user=self.receiver,
             message__contains='Pickup is confirmed',
         ).exists())
+
+        response = self.client.post(
+            reverse('update_request_status', args=[request.pk, 'completed']),
+        )
+        self.assertRedirects(response, reverse('incoming_requests'))
+        request.refresh_from_db()
+        self.assertEqual(request.status, 'completed')
+        self.assertIsNotNone(request.completed_at)
+
+    def test_rejection_is_recorded_and_shown_in_both_request_views(self):
+        request = DonationRequest.objects.create(
+            donation=self.donation,
+            receiver=self.receiver,
+            pickup_time=self.pickup_start + timedelta(hours=2),
+        )
+        self.client.force_login(self.donor)
+        response = self.client.post(
+            reverse('update_request_status', args=[request.pk, 'rejected']),
+        )
+
+        self.assertRedirects(response, reverse('incoming_requests'))
+        request.refresh_from_db()
+        self.assertEqual(request.status, 'rejected')
+        self.assertIsNotNone(request.rejected_at)
+        self.assertContains(
+            self.client.get(reverse('incoming_requests')),
+            'Request declined',
+        )
+
+        self.client.force_login(self.receiver)
+        self.assertContains(
+            self.client.get(reverse('my_requests')),
+            'Request declined',
+        )
+
+    def test_legacy_accepted_request_renders_without_timestamp(self):
+        request = DonationRequest.objects.create(
+            donation=self.donation,
+            receiver=self.receiver,
+            status='accepted',
+            pickup_time=self.pickup_start + timedelta(hours=2),
+        )
+
+        response = self.client.get(reverse('my_requests'))
+
+        self.assertContains(response, 'Accepted (date unavailable)')
+        self.assertContains(response, 'Awaiting pickup')
+        self.assertEqual(request.accepted_at, None)
 
     def test_receiver_cannot_choose_time_outside_donor_window(self):
         outside_window = self.pickup_end + timedelta(hours=1)
