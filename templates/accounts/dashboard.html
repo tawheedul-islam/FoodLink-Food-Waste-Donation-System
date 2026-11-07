@@ -17,6 +17,31 @@
     </div>
 </div>
 
+{% if user.role == 'donor' or user.role == 'receiver' %}
+<section class="verification-status card p-3 p-md-4 mb-4 reveal" aria-labelledby="verification-status-heading">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div>
+            <h2 id="verification-status-heading" class="h6 fw-bold mb-1">Organization verification</h2>
+            {% if user.is_verified %}
+                <p class="text-success mb-0"><i class="bi bi-patch-check-fill me-1" aria-hidden="true"></i>Your account is FoodLink verified.</p>
+            {% elif latest_verification_request.status == 'pending' %}
+                <p class="text-muted mb-0"><i class="bi bi-hourglass-split me-1" aria-hidden="true"></i>Your request for <strong>{{ latest_verification_request.organization_name }}</strong> is awaiting admin review.</p>
+            {% elif latest_verification_request.status == 'declined' %}
+                <p class="text-muted mb-1">Your request for <strong>{{ latest_verification_request.organization_name }}</strong> was declined.</p>
+                {% if latest_verification_request.review_note %}<p class="small text-muted mb-0">Admin note: {{ latest_verification_request.review_note }}</p>{% endif %}
+            {% else %}
+                <p class="text-muted mb-0">Request a review to display a FoodLink verification badge.</p>
+            {% endif %}
+        </div>
+        {% if not user.is_verified and latest_verification_request.status != 'pending' %}
+            <a href="{% url 'verification_request' %}" class="btn btn-outline-success">
+                {% if latest_verification_request.status == 'declined' %}Submit another request{% else %}Request verification{% endif %}
+            </a>
+        {% endif %}
+    </div>
+</section>
+{% endif %}
+
 {% if user.role == 'donor' %}
 <h5 class="fw-semibold mb-3">Your Donation Summary</h5>
 <div class="row g-3 mb-4 text-center">

@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
-from .models import User
+from .models import User, VerificationRequest
 
 class RegisterForm(UserCreationForm):
     role = forms.ChoiceField(
@@ -59,3 +59,56 @@ class ProfileEditForm(forms.ModelForm):
         if phone and (not phone.isdigit() or len(phone) < 10):
             raise forms.ValidationError("Enter a valid phone number (at least 10 digits).")
         return phone
+
+
+class VerificationRequestForm(forms.ModelForm):
+    class Meta:
+        model = VerificationRequest
+        fields = [
+            'organization_name',
+            'organization_type',
+            'organization_website',
+            'organization_summary',
+        ]
+        widgets = {
+            'organization_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Organization or community group name',
+            }),
+            'organization_type': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'e.g. Community kitchen, registered NGO, local shelter',
+            }),
+            'organization_website': forms.URLInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'https://example.org (optional)',
+            }),
+            'organization_summary': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 4,
+                'placeholder': 'Briefly describe your organization and how it participates in food donation or distribution.',
+            }),
+        }
+
+    def __init__(self, *args, user, **kwargs):
+        self.user = user
+        super().__init__(*args, **kwargs)
+
+    def clean_organization_name(self):
+        value = self.cleaned_data['organization_name'].strip()
+        if len(value) < 2:
+            raise forms.ValidationError('Enter your organization name.')
+        return value
+
+    def clean_organization_type(self):
+        return self.cleaned_data['organization_type'].strip()
+
+    def clean_organization_summary(self):
+        return self.cleaned_data['organization_summary'].strip()
+
+    def save(self, commit=True):
+        verification_request = super().save(commit=False)
+        verification_request.user = self.user
+        if commit:
+            verification_request.save()
+        return verification_request

@@ -2,8 +2,8 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .forms import RegisterForm, ProfileEditForm
-from .models import User
+from .forms import RegisterForm, ProfileEditForm, VerificationRequestForm
+from .models import User, VerificationRequest
 from donations.models import FoodDonation
 from requests_app.models import DonationRequest
 from requests_app.models import Rating
@@ -76,6 +76,9 @@ def dashboard_view(request):
         context['personal_completed_count'] = context['completed_count']
 
     if request.user.role in {'donor', 'receiver'}:
+        context['latest_verification_request'] = VerificationRequest.objects.filter(
+            user=request.user,
+        ).first()
         completed_requests = DonationRequest.objects.filter(status='completed')
         context['community_completed_donations'] = (
             completed_requests.values('donation_id').distinct().count()
@@ -118,3 +121,34 @@ def profile_edit(request):
     else:
         form = ProfileEditForm(instance=request.user)
     return render(request, 'accounts/profile_edit.html', {'form': form})
+
+
+@login_required
+def verification_request_view(request):
+    if request.user.role not in {'donor', 'receiver'}:
+        messages.error(request, 'Only donors and receivers can request verification.')
+        return redirect('dashboard')
+    if request.user.is_verified:
+        messages.info(request, 'Your account is already verified.')
+        return redirect('dashboard')
+
+    pending_request = VerificationRequest.objects.filter(
+        user=request.user,
+        status=VerificationRequest.STATUS_PENDING,
+    ).first()
+    if pending_request:
+        messages.info(request, 'Your verification request is awaiting admin review.')
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        form = VerificationRequestForm(request.POST, user=request.user)
+        if form.is_valid():
+            verification_request = form.save(commit=False)
+            verification_request.user = request.user
+            verification_request.save()
+            messages.success(request, 'Verification request submitted for admin review.')
+            return redirect('dashboard')
+    else:
+        form = VerificationRequestForm(user=request.user)
+
+    return render(request, 'accounts/verification_request.html', {'form': form})

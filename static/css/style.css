@@ -274,6 +274,10 @@ body {
     align-items: center;
     gap: .25rem;
 }
+.verification-status {
+    border-left: 4px solid var(--fl-green);
+    background: var(--bs-body-bg);
+}
 
 /* ---------- Stat / feature ---------- */
 .stat-icon {
