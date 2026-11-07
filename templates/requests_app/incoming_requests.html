@@ -10,6 +10,7 @@
             <div class="card-body">
                 <h5 class="card-title">{{ req.donation.food_name }}</h5>
                 <p class="mb-1"><strong>Requested by:</strong> {{ req.receiver.username }}</p>
+                {% include 'requests_app/_user_trust.html' with trust_user=req.receiver trust_completed_count=req.receiver_completed_pickups %}
                 <p class="mb-1"><strong>Quantity:</strong> {{ req.donation.quantity }}</p>
                 <p class="mb-2"><strong>Requested on:</strong> {{ req.request_date|date:"d M Y, H:i" }}</p>
                 {% if req.pickup_time %}

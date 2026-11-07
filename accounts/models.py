@@ -10,6 +10,11 @@ class User(AbstractUser):
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='donor')
     phone_number = models.CharField(max_length=15, blank=True, null=True)
     address = models.CharField(max_length=255, blank=True, null=True)
+    is_verified = models.BooleanField(
+        default=False,
+        help_text='Mark only after completing the verification review.',
+    )
+    verified_at = models.DateTimeField(blank=True, null=True)
 
     def __str__(self):
         return f"{self.username} ({self.role})"

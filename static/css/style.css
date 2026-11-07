@@ -255,6 +255,25 @@ body {
 .impact-stat {
     background: var(--bs-tertiary-bg);
 }
+.verified-badge {
+    color: #075985;
+    background: #e0f2fe;
+    font-weight: 600;
+}
+.donor-profile-summary,
+.user-trust {
+    background: var(--bs-tertiary-bg);
+}
+.user-trust {
+    margin-bottom: .75rem;
+    padding: .65rem .75rem;
+    border-radius: .75rem;
+}
+.donor-rating {
+    display: inline-flex;
+    align-items: center;
+    gap: .25rem;
+}
 
 /* ---------- Stat / feature ---------- */
 .stat-icon {

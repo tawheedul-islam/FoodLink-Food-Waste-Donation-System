@@ -59,9 +59,10 @@ def dashboard_view(request):
             donation__donor=request.user, status='pending'
         ).count()
         completed_requests = DonationRequest.objects.filter(status='completed')
-        context['personal_completed_count'] = completed_requests.filter(
-            donation__donor=request.user
-        ).values('donation_id').distinct().count()
+        context['personal_completed_count'] = donations.filter(
+            status='completed',
+            requests__status='completed',
+        ).distinct().count()
         context['completed_count'] = context['personal_completed_count']
         ratings = Rating.objects.filter(rated_user=request.user).order_by('-created_at')
         context['ratings'] = ratings

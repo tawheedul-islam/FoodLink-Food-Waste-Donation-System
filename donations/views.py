@@ -6,6 +6,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator
+from django.db.models import Avg, Count, Q
 from django.urls import reverse
 from .models import FoodDonation
 from .forms import FoodDonationForm
@@ -14,6 +15,18 @@ from django.utils import timezone
 
 DISTANCE_SESSION_KEY = 'donation_search_location'
 RADIUS_CHOICES = (5, 10, 25, 50, 100)
+
+
+def donations_with_trust_signals():
+    return FoodDonation.objects.select_related('donor').annotate(
+        donor_completed_donations=Count(
+            'donor__donations',
+            filter=Q(donor__donations__status='completed'),
+            distinct=True,
+        ),
+        donor_average_rating=Avg('donor__ratings_received__score'),
+        donor_rating_count=Count('donor__ratings_received', distinct=True),
+    )
 
 
 def _distance_km(latitude, longitude, target_latitude, target_longitude):
@@ -31,9 +44,12 @@ def _distance_km(latitude, longitude, target_latitude, target_longitude):
 @login_required
 def donation_list(request):
     if request.user.role == 'donor':
-        donations = FoodDonation.objects.filter(donor=request.user).order_by('-created_at')
+        donations = donations_with_trust_signals().filter(donor=request.user).order_by('-created_at')
     else:
-       donations = FoodDonation.objects.filter(status='posted', expiry_time__gt=timezone.now()).order_by('-created_at')
+       donations = donations_with_trust_signals().filter(
+           status='posted',
+           expiry_time__gt=timezone.now(),
+       ).order_by('-created_at')
 
     # Search by food name
     query = request.GET.get('q')
@@ -165,10 +181,18 @@ def donation_create(request):
 
 @login_required
 def donation_detail(request, pk):
-    donation = get_object_or_404(FoodDonation, pk=pk)
+    donation = get_object_or_404(donations_with_trust_signals(), pk=pk)
     donation_requests = None
     if donation.donor == request.user:
-        donation_requests = DonationRequest.objects.filter(donation=donation).order_by('-request_date')
+        donation_requests = DonationRequest.objects.filter(
+            donation=donation
+        ).select_related('receiver').annotate(
+            receiver_completed_pickups=Count(
+                'receiver__requests',
+                filter=Q(receiver__requests__status='completed'),
+                distinct=True,
+            ),
+        ).order_by('-request_date')
     return render(request, 'donations/donation_detail.html', {
         'donation': donation,
         'donation_requests': donation_requests

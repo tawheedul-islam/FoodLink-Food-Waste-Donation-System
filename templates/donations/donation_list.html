@@ -119,12 +119,19 @@
             </div>
             <div class="card-body d-flex flex-column">
                 <h2 class="h5 fw-semibold mb-1">{{ donation.food_name }}</h2>
-                {% if donation.donor.average_rating %}
-                <div class="donor-rating mb-3" aria-label="Donor rating: {{ donation.donor.average_rating }} out of 5">
-                    <span class="text-warning" aria-hidden="true">{% for i in donation.donor.average_rating|star_range %}★{% endfor %}{% for i in donation.donor.average_rating|empty_star_range %}☆{% endfor %}</span>
-                    <small class="text-muted">{{ donation.donor.average_rating }} <span class="visually-hidden">out of 5</span></small>
+                <div class="donor-trust mb-3">
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        {% include 'accounts/_verified_badge.html' with profile_user=donation.donor %}
+                        <small class="text-muted"><i class="bi bi-check2-circle text-success" aria-hidden="true"></i> {{ donation.donor_completed_donations }} completed</small>
+                        {% if donation.donor_rating_count %}
+                            <small class="donor-rating" aria-label="Donor rating: {{ donation.donor_average_rating|floatformat:1 }} out of 5">
+                                <span class="text-warning" aria-hidden="true"><i class="bi bi-star-fill"></i></span>
+                                {{ donation.donor_average_rating|floatformat:1 }}
+                                <span class="text-muted">({{ donation.donor_rating_count }})</span>
+                            </small>
+                        {% endif %}
+                    </div>
                 </div>
-                {% endif %}
                 <ul class="donation-meta list-unstyled small mb-3">
                     <li><i class="bi bi-box-seam text-success" aria-hidden="true"></i><span>{{ donation.quantity }}</span></li>
                     <li><i class="bi bi-geo-alt text-success" aria-hidden="true"></i><span>{{ donation.pickup_location }}</span></li>

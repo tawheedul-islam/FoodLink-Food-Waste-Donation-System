@@ -9,6 +9,8 @@
         <div class="card shadow-sm h-100">
             <div class="card-body">
                 <h5 class="card-title">{{ req.donation.food_name }}</h5>
+                <p class="mb-1"><strong>Donor:</strong> {{ req.donation.donor.username }}</p>
+                {% include 'requests_app/_user_trust.html' with trust_user=req.donation.donor trust_completed_count=req.donor_completed_donations trust_average_rating=req.donor_average_rating trust_rating_count=req.donor_rating_count %}
                 <p class="mb-1"><strong>Quantity:</strong> {{ req.donation.quantity }}</p>
                 <p class="mb-1"><strong>Pickup:</strong> {{ req.donation.pickup_location }}</p>
                 <p class="mb-2"><strong>Requested on:</strong> {{ req.request_date|date:"d M Y, H:i" }}</p>

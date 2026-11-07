@@ -1,10 +1,33 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.db.models import Avg, Count, Q
 from django.utils import timezone
 from donations.models import FoodDonation
 from .forms import PickupRequestForm, RatingForm
 from .models import DonationRequest, Notification, Rating
+
+
+def requests_with_trust_signals():
+    return DonationRequest.objects.select_related(
+        'receiver',
+        'donation',
+        'donation__donor',
+    ).annotate(
+        receiver_completed_pickups=Count(
+            'receiver__requests',
+            filter=Q(receiver__requests__status='completed'),
+            distinct=True,
+        ),
+        donor_completed_donations=Count(
+            'donation__donor__donations',
+            filter=Q(donation__donor__donations__status='completed'),
+            distinct=True,
+        ),
+        donor_average_rating=Avg('donation__donor__ratings_received__score'),
+        donor_rating_count=Count('donation__donor__ratings_received', distinct=True),
+    )
+
 
 @login_required
 def create_request(request, pk):
@@ -54,7 +77,9 @@ def create_request(request, pk):
 
 @login_required
 def my_requests(request):
-    reqs = DonationRequest.objects.filter(receiver=request.user).order_by('-request_date')
+    reqs = requests_with_trust_signals().filter(
+        receiver=request.user
+    ).order_by('-request_date')
     return render(request, 'requests_app/my_requests.html', {'requests': reqs})
 
 @login_required
@@ -62,7 +87,9 @@ def incoming_requests(request):
     if request.user.role != 'donor':
         messages.error(request, 'Only donors can view incoming requests.')
         return redirect('donation_list')
-    reqs = DonationRequest.objects.filter(donation__donor=request.user).order_by('-request_date')
+    reqs = requests_with_trust_signals().filter(
+        donation__donor=request.user
+    ).order_by('-request_date')
     return render(request, 'requests_app/incoming_requests.html', {'requests': reqs})
 
 @login_required

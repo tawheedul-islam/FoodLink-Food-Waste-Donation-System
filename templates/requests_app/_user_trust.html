@@ -1,0 +1,19 @@
+<div class="user-trust small">
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+        {% include 'accounts/_verified_badge.html' with profile_user=trust_user %}
+        {% if trust_user.role == 'donor' and trust_rating_count %}
+            <span class="trust-rating" aria-label="Average rating {{ trust_average_rating|floatformat:1 }} out of 5">
+                <i class="bi bi-star-fill text-warning" aria-hidden="true"></i>
+                {{ trust_average_rating|floatformat:1 }}
+                <span class="text-muted">({{ trust_rating_count }} review{{ trust_rating_count|pluralize }})</span>
+            </span>
+        {% endif %}
+    </div>
+    <span class="text-muted">
+        {% if trust_user.role == 'donor' %}
+            <i class="bi bi-check2-circle me-1" aria-hidden="true"></i>{{ trust_completed_count }} completed donation{{ trust_completed_count|pluralize }}
+        {% else %}
+            <i class="bi bi-hand-thumbs-up me-1" aria-hidden="true"></i>{{ trust_completed_count }} completed pickup{{ trust_completed_count|pluralize }}
+        {% endif %}
+    </span>
+</div>

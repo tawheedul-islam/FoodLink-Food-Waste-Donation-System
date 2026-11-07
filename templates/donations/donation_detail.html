@@ -37,11 +37,17 @@
             <p><strong>Pickup Availability:</strong> {{ donation.pickup_window_start|date:"D, d M Y, H:i" }} – {{ donation.pickup_window_end|date:"D, d M Y, H:i" }}</p>
         {% endif %}
         <p><strong>Expiry Time:</strong> {{ donation.expiry_time }}</p>
-        <p><strong>Posted by:</strong> {{ donation.donor.username }}
-    {% if donation.donor.average_rating %}
-        <span class="badge bg-warning text-dark">{{ donation.donor.average_rating }} ★</span>
-    {% endif %}
-</p>
+        <div class="donor-profile-summary rounded-3 p-3 my-3">
+            <strong>Posted by:</strong> {{ donation.donor.username }}
+            {% include 'accounts/_verified_badge.html' with profile_user=donation.donor %}
+            <div class="small text-muted mt-2">
+                <i class="bi bi-check2-circle text-success" aria-hidden="true"></i>
+                {{ donation.donor_completed_donations }} completed donation{{ donation.donor_completed_donations|pluralize }}
+                {% if donation.donor_rating_count %}
+                    <span class="ms-2"><i class="bi bi-star-fill text-warning" aria-hidden="true"></i> {{ donation.donor_average_rating|floatformat:1 }} from {{ donation.donor_rating_count }} review{{ donation.donor_rating_count|pluralize }}</span>
+                {% endif %}
+            </div>
+        </div>
 
         {% if user.role == 'receiver' and donation.status == 'posted' %}
             <a href="{% url 'create_request' donation.pk %}" class="btn btn-success">Request This Donation</a>
@@ -61,6 +67,7 @@
         <div class="card shadow-sm">
             <div class="card-body">
                 <p class="mb-1"><strong>Requested by:</strong> {{ req.receiver.username }}</p>
+                {% include 'requests_app/_user_trust.html' with trust_user=req.receiver trust_completed_count=req.receiver_completed_pickups %}
                 <p class="mb-2"><strong>Date:</strong> {{ req.request_date|date:"d M Y, H:i" }}</p>
                 {% if req.pickup_time %}<p class="mb-2"><strong>Pickup time:</strong> {{ req.pickup_time|date:"D, d M Y, H:i" }}{% if req.status == 'accepted' %} <span class="badge text-bg-success">Confirmed</span>{% endif %}</p>{% endif %}
 

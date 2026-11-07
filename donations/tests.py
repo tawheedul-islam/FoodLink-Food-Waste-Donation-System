@@ -4,8 +4,71 @@ from django.utils import timezone
 from datetime import timedelta
 
 from accounts.models import User
+from requests_app.models import DonationRequest, Rating
 from .forms import FoodDonationForm
 from .models import FoodDonation
+
+
+class DonorTrustSignalTests(TestCase):
+    def setUp(self):
+        self.donor = User.objects.create_user(
+            username='trusted-donor',
+            password='test-password',
+            role='donor',
+            is_verified=True,
+        )
+        self.receiver = User.objects.create_user(
+            username='trust-receiver',
+            password='test-password',
+            role='receiver',
+        )
+        completed_donation = FoodDonation.objects.create(
+            donor=self.donor,
+            food_name='Past donation',
+            category='raw',
+            quantity='1 kg',
+            expiry_time=timezone.now() + timedelta(days=2),
+            pickup_location='Community center',
+            status='completed',
+        )
+        completed_request = DonationRequest.objects.create(
+            donation=completed_donation,
+            receiver=self.receiver,
+            status='completed',
+        )
+        Rating.objects.create(
+            donation_request=completed_request,
+            rated_by=self.receiver,
+            rated_user=self.donor,
+            score=5,
+        )
+        self.available_donation = FoodDonation.objects.create(
+            donor=self.donor,
+            food_name='Available fruit',
+            category='raw',
+            quantity='2 kg',
+            expiry_time=timezone.now() + timedelta(days=2),
+            pickup_location='Community center',
+        )
+        self.client.force_login(self.receiver)
+
+    def test_donation_listing_shows_verified_badge_rating_and_completed_count(self):
+        response = self.client.get(reverse('donation_list'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'FoodLink verified')
+        self.assertContains(response, '1 completed')
+        self.assertContains(response, '5.0')
+
+    def test_donation_detail_shows_donor_trust_signals(self):
+        response = self.client.get(
+            reverse('donation_detail', args=[self.available_donation.pk]),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'FoodLink verified')
+        self.assertContains(response, '1 completed donation')
+        self.assertContains(response, '5.0 from 1 review')
 
 
 class NearbyDonationTests(TestCase):
