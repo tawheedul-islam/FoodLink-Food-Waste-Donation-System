@@ -238,6 +238,23 @@ body {
     color: var(--bs-secondary-color);
     font-size: .75rem;
 }
+.community-impact {
+    background:
+        radial-gradient(ellipse at top right, rgba(32, 201, 151, .12), transparent 55%),
+        var(--bs-body-bg);
+}
+.impact-personal {
+    padding: .65rem 1rem;
+    border-radius: 999px;
+    color: var(--fl-green);
+    background: rgba(25, 135, 84, .1);
+}
+.impact-personal strong {
+    font-size: 1.25rem;
+}
+.impact-stat {
+    background: var(--bs-tertiary-bg);
+}
 
 /* ---------- Stat / feature ---------- */
 .stat-icon {

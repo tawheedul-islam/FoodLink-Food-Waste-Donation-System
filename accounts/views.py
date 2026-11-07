@@ -58,6 +58,11 @@ def dashboard_view(request):
         context['pending_requests_count'] = DonationRequest.objects.filter(
             donation__donor=request.user, status='pending'
         ).count()
+        completed_requests = DonationRequest.objects.filter(status='completed')
+        context['personal_completed_count'] = completed_requests.filter(
+            donation__donor=request.user
+        ).values('donation_id').distinct().count()
+        context['completed_count'] = context['personal_completed_count']
         ratings = Rating.objects.filter(rated_user=request.user).order_by('-created_at')
         context['ratings'] = ratings
         context['avg_rating'] = request.user.average_rating()
@@ -67,6 +72,19 @@ def dashboard_view(request):
         context['pending_count'] = my_requests.filter(status='pending').count()
         context['accepted_count'] = my_requests.filter(status='accepted').count()
         context['completed_count'] = my_requests.filter(status='completed').count()
+        context['personal_completed_count'] = context['completed_count']
+
+    if request.user.role in {'donor', 'receiver'}:
+        completed_requests = DonationRequest.objects.filter(status='completed')
+        context['community_completed_donations'] = (
+            completed_requests.values('donation_id').distinct().count()
+        )
+        context['community_donors'] = (
+            completed_requests.values('donation__donor_id').distinct().count()
+        )
+        context['community_receivers'] = (
+            completed_requests.values('receiver_id').distinct().count()
+        )
 
     return render(request, 'accounts/dashboard.html', context)
 
