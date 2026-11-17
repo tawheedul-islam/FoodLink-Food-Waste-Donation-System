@@ -87,4 +87,22 @@
         </div>
     </div>
 </div>
+
+<section class="card feature-card p-4 p-md-5 mt-5 reveal" aria-labelledby="organization-teams-heading">
+    <div class="row align-items-center g-4">
+        <div class="col-lg-8">
+            <span class="badge rounded-pill text-bg-success mb-2"><i class="bi bi-buildings me-1" aria-hidden="true"></i>Work together</span>
+            <h2 id="organization-teams-heading" class="h3 fw-bold mb-2">For organizations and teams</h2>
+            <p class="text-muted mb-3">Create a shared workspace for your team. Donor teams can post donations and manage requests together, while receiver teams can coordinate food requests and pickups.</p>
+            <div class="row g-2 small">
+                <div class="col-md-6"><i class="bi bi-check-circle-fill text-success me-1" aria-hidden="true"></i>Invite teammates using their FoodLink account</div>
+                <div class="col-md-6"><i class="bi bi-check-circle-fill text-success me-1" aria-hidden="true"></i>Share donations or requests with your workspace</div>
+            </div>
+        </div>
+        <div class="col-lg-4 text-lg-end">
+            <a href="{% url 'register' %}" class="btn btn-success">Create an account</a>
+            <a href="{% url 'login' %}" class="btn btn-outline-success ms-sm-2 mt-2 mt-sm-0">Sign in</a>
+        </div>
+    </div>
+</section>
 {% endblock %}

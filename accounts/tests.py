@@ -96,6 +96,18 @@ class DashboardImpactTests(TestCase):
         self.assertContains(response, 'of your pickups completed')
 
 
+class HomepageOrganizationSectionTests(TestCase):
+    def test_homepage_explains_shared_organization_workspaces(self):
+        response = self.client.get(reverse('home'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'For organizations and teams')
+        self.assertContains(response, 'Donor teams can post donations and manage requests together')
+        self.assertContains(response, 'receiver teams can coordinate food requests and pickups')
+        self.assertContains(response, reverse('register'))
+        self.assertContains(response, reverse('login'))
+
+
 class DashboardOnboardingTests(TestCase):
     def setUp(self):
         self.donor = User.objects.create_user(
