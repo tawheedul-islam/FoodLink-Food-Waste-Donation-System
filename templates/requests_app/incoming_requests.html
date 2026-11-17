@@ -9,7 +9,9 @@
         <div class="card shadow-sm h-100">
             <div class="card-body">
                 <h5 class="card-title">{{ req.donation.food_name }}</h5>
+                {% if req.donation.organization %}<p class="small text-muted mb-1"><i class="bi bi-building me-1" aria-hidden="true"></i>{{ req.donation.organization.name }}</p>{% endif %}
                 <p class="mb-1"><strong>Requested by:</strong> {{ req.receiver.username }}</p>
+                {% if req.receiver_organization %}<p class="small text-muted mb-1">On behalf of {{ req.receiver_organization.name }}</p>{% endif %}
                 {% include 'requests_app/_user_trust.html' with trust_user=req.receiver trust_completed_count=req.receiver_completed_pickups %}
                 <p class="mb-1"><strong>Quantity:</strong> {{ req.donation.quantity }}</p>
                 <p class="mb-2"><strong>Requested on:</strong> {{ req.request_date|date:"d M Y, H:i" }}</p>

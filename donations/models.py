@@ -19,6 +19,13 @@ class FoodDonation(models.Model):
     )
 
     donor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='donations')
+    organization = models.ForeignKey(
+        'accounts.Organization',
+        on_delete=models.SET_NULL,
+        related_name='donations',
+        blank=True,
+        null=True,
+    )
     food_name = models.CharField(max_length=100)
     category = models.CharField(max_length=20, choices=CATEGORY_CHOICES)
     quantity = models.CharField(max_length=50)
@@ -51,3 +58,10 @@ class FoodDonation(models.Model):
 
     def __str__(self):
         return f"{self.food_name} ({self.status})"
+
+    def can_be_managed_by(self, user):
+        if not user.is_authenticated or user.role != 'donor':
+            return False
+        if self.organization_id:
+            return self.organization.has_member(user)
+        return self.donor_id == user.pk

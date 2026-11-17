@@ -8,7 +8,13 @@ from django.utils import timezone
 
 from .admin import UserAdmin, VerificationRequestAdmin
 from .forms import ProfileEditForm
-from .models import User, VerificationRequest
+from .models import (
+    Organization,
+    OrganizationInvitation,
+    OrganizationMembership,
+    User,
+    VerificationRequest,
+)
 from donations.models import FoodDonation
 from requests_app.models import DonationRequest
 
@@ -293,3 +299,112 @@ class VerificationRequestWorkflowTests(TestCase):
         self.assertContains(dashboard, 'was declined')
         self.assertContains(dashboard, 'Submit another request')
         self.assertContains(dashboard, 'Please provide more organization details.')
+
+
+class OrganizationWorkspaceTests(TestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user(
+            username='workspace-owner',
+            password='test-password',
+            role='donor',
+        )
+        self.teammate = User.objects.create_user(
+            username='workspace-teammate',
+            password='test-password',
+            role='donor',
+        )
+        self.receiver = User.objects.create_user(
+            username='workspace-receiver',
+            password='test-password',
+            role='receiver',
+        )
+        self.client.force_login(self.owner)
+
+    def create_workspace(self):
+        response = self.client.post(
+            reverse('organizations'),
+            {
+                'name': 'Neighborhood Kitchen',
+                'role': 'donor',
+                'description': 'A shared local food team.',
+            },
+        )
+        self.assertRedirects(response, reverse('organizations'))
+        return Organization.objects.get(name='Neighborhood Kitchen')
+
+    def test_owner_can_create_workspace_and_invite_existing_teammate(self):
+        organization = self.create_workspace()
+        owner_membership = OrganizationMembership.objects.get(
+            organization=organization,
+            user=self.owner,
+        )
+        self.assertEqual(owner_membership.role, OrganizationMembership.ROLE_OWNER)
+
+        response = self.client.post(
+            reverse('organization_invite', args=[organization.pk]),
+            {'username': self.teammate.username},
+        )
+        self.assertRedirects(response, reverse('organization_detail', args=[organization.pk]))
+        invitation = OrganizationInvitation.objects.get(
+            organization=organization,
+            invited_user=self.teammate,
+        )
+
+        self.client.force_login(self.teammate)
+        response = self.client.post(
+            reverse('organization_invitation_response', args=[invitation.pk, 'accept']),
+        )
+
+        self.assertRedirects(response, reverse('organizations'))
+        self.assertTrue(organization.has_member(self.teammate))
+        invitation.refresh_from_db()
+        self.assertEqual(invitation.status, OrganizationInvitation.STATUS_ACCEPTED)
+
+    def test_only_matching_role_users_can_be_invited(self):
+        organization = self.create_workspace()
+
+        response = self.client.post(
+            reverse('organization_invite', args=[organization.pk]),
+            {'username': self.receiver.username},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'must have the same role')
+        self.assertFalse(OrganizationInvitation.objects.filter(
+            organization=organization,
+            invited_user=self.receiver,
+        ).exists())
+
+    def test_non_owner_cannot_invite_and_owner_cannot_be_removed(self):
+        organization = self.create_workspace()
+        OrganizationMembership.objects.create(
+            organization=organization,
+            user=self.teammate,
+            role=OrganizationMembership.ROLE_MEMBER,
+        )
+        self.client.force_login(self.teammate)
+
+        response = self.client.post(
+            reverse('organization_invite', args=[organization.pk]),
+            {'username': 'someone'},
+        )
+        self.assertRedirects(response, reverse('organizations'))
+
+        self.client.force_login(self.owner)
+        response = self.client.post(
+            reverse('organization_remove_member', args=[organization.pk, self.owner.pk]),
+        )
+        self.assertEqual(response.status_code, 404)
+        self.assertTrue(organization.has_member(self.owner))
+
+    def test_workspace_is_private_to_members(self):
+        organization = self.create_workspace()
+
+        response = self.client.get(reverse('organization_detail', args=[organization.pk]))
+        self.assertEqual(response.status_code, 200)
+
+        self.client.force_login(self.teammate)
+        self.assertEqual(
+            self.client.get(reverse('organization_detail', args=[organization.pk])).status_code,
+            404,
+        )

@@ -5,6 +5,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import User
+from accounts.models import Organization, OrganizationMembership
 from donations.models import FoodDonation
 from .models import DonationRequest, Notification
 
@@ -148,3 +149,67 @@ class PickupSchedulingTests(TestCase):
         self.assertRedirects(response, reverse('incoming_requests'))
         request.refresh_from_db()
         self.assertEqual(request.status, 'pending')
+
+    def test_receiver_can_request_on_behalf_of_workspace_and_team_can_see_it(self):
+        teammate = User.objects.create_user(
+            username='receiver-teammate',
+            password='test-password',
+            role='receiver',
+        )
+        organization = Organization.objects.create(
+            name='Community Shelter',
+            role='receiver',
+            created_by=self.receiver,
+        )
+        OrganizationMembership.objects.create(
+            organization=organization,
+            user=self.receiver,
+            role=OrganizationMembership.ROLE_OWNER,
+        )
+        OrganizationMembership.objects.create(
+            organization=organization,
+            user=teammate,
+            role=OrganizationMembership.ROLE_MEMBER,
+        )
+        pickup_time = self.pickup_start + timedelta(hours=2)
+
+        response = self.client.post(
+            reverse('create_request', args=[self.donation.pk]),
+            {
+                'receiver_organization': organization.pk,
+                'pickup_time': self.pickup_time_input(pickup_time),
+            },
+        )
+
+        self.assertRedirects(response, reverse('my_requests'))
+        request = DonationRequest.objects.get(donation=self.donation)
+        self.assertEqual(request.receiver_organization, organization)
+
+        self.client.force_login(teammate)
+        response = self.client.get(reverse('my_requests'))
+        self.assertContains(response, 'Fresh produce')
+        self.assertContains(response, 'Community Shelter')
+
+    def test_receiver_cannot_submit_request_for_donor_workspace(self):
+        organization = Organization.objects.create(
+            name='Donor-only kitchen',
+            role='donor',
+            created_by=self.donor,
+        )
+        OrganizationMembership.objects.create(
+            organization=organization,
+            user=self.donor,
+            role=OrganizationMembership.ROLE_OWNER,
+        )
+        pickup_time = self.pickup_start + timedelta(hours=2)
+
+        response = self.client.post(
+            reverse('create_request', args=[self.donation.pk]),
+            {
+                'receiver_organization': organization.pk,
+                'pickup_time': self.pickup_time_input(pickup_time),
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(DonationRequest.objects.exists())

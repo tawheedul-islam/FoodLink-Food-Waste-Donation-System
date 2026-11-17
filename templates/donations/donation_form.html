@@ -9,6 +9,10 @@
                 <form method="POST" enctype="multipart/form-data">
                     {% csrf_token %}
                     {% for field in form %}
+                        {% if field.name == 'organization' %}
+                            <h2 class="h5 fw-semibold border-top pt-4 mt-4">Posting as an organization</h2>
+                            <p class="small text-muted">Choose one of your donor workspaces to share this donation with its team. Leave blank to post personally.</p>
+                        {% endif %}
                         {% if field.name == 'allergen_info' %}
                             <h2 class="h5 fw-semibold border-top pt-4 mt-4">Food safety &amp; handling</h2>
                             <p class="small text-muted">Share what you know so receivers can make an informed decision. Please be specific about allergens.</p>

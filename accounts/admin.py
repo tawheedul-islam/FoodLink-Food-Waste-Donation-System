@@ -1,7 +1,13 @@
 from django.contrib import admin
 from django.contrib import messages
 from django.utils import timezone
-from .models import User, VerificationRequest
+from .models import (
+    Organization,
+    OrganizationInvitation,
+    OrganizationMembership,
+    User,
+    VerificationRequest,
+)
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
@@ -59,3 +65,23 @@ class VerificationRequestAdmin(admin.ModelAdmin):
             f'{reviewed} verification request(s) declined.',
             messages.SUCCESS,
         )
+
+
+class OrganizationMembershipInline(admin.TabularInline):
+    model = OrganizationMembership
+    extra = 0
+
+
+@admin.register(Organization)
+class OrganizationAdmin(admin.ModelAdmin):
+    list_display = ('name', 'role', 'created_by', 'created_at')
+    list_filter = ('role', 'created_at')
+    search_fields = ('name', 'created_by__username')
+    inlines = (OrganizationMembershipInline,)
+
+
+@admin.register(OrganizationInvitation)
+class OrganizationInvitationAdmin(admin.ModelAdmin):
+    list_display = ('organization', 'invited_user', 'invited_by', 'status', 'created_at')
+    list_filter = ('status', 'created_at')
+    search_fields = ('organization__name', 'invited_user__username', 'invited_by__username')

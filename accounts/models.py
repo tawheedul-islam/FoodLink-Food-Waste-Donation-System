@@ -96,3 +96,114 @@ class VerificationRequest(models.Model):
         self.reviewed_by = reviewer
         self.reviewed_at = timezone.now()
         self.save(update_fields=['status', 'reviewed_by', 'reviewed_at', 'review_note'])
+
+
+class Organization(models.Model):
+    ROLE_CHOICES = (
+        ('donor', 'Donor organization'),
+        ('receiver', 'Receiver organization'),
+    )
+
+    name = models.CharField(max_length=150)
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES)
+    description = models.TextField(blank=True, max_length=1000)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name='organizations_created',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    members = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        through='OrganizationMembership',
+        related_name='organizations',
+    )
+
+    class Meta:
+        ordering = ('name', 'pk')
+
+    def __str__(self):
+        return self.name
+
+    def has_member(self, user):
+        return self.memberships.filter(user=user).exists()
+
+    def is_owner(self, user):
+        return self.memberships.filter(user=user, role='owner').exists()
+
+
+class OrganizationMembership(models.Model):
+    ROLE_OWNER = 'owner'
+    ROLE_MEMBER = 'member'
+    ROLE_CHOICES = (
+        (ROLE_OWNER, 'Owner'),
+        (ROLE_MEMBER, 'Member'),
+    )
+
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE,
+        related_name='memberships',
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='organization_memberships',
+    )
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default=ROLE_MEMBER)
+    joined_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ('joined_at', 'pk')
+        constraints = [
+            models.UniqueConstraint(
+                fields=['organization', 'user'],
+                name='unique_organization_membership',
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} — {self.organization.name} ({self.role})"
+
+
+class OrganizationInvitation(models.Model):
+    STATUS_PENDING = 'pending'
+    STATUS_ACCEPTED = 'accepted'
+    STATUS_DECLINED = 'declined'
+    STATUS_CHOICES = (
+        (STATUS_PENDING, 'Pending'),
+        (STATUS_ACCEPTED, 'Accepted'),
+        (STATUS_DECLINED, 'Declined'),
+    )
+
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE,
+        related_name='invitations',
+    )
+    invited_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='organization_invitations',
+    )
+    invited_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name='organization_invitations_sent',
+    )
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=STATUS_PENDING)
+    created_at = models.DateTimeField(auto_now_add=True)
+    responded_at = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        ordering = ('-created_at',)
+        constraints = [
+            models.UniqueConstraint(
+                fields=['organization', 'invited_user'],
+                condition=Q(status='pending'),
+                name='one_pending_organization_invitation',
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.organization.name} → {self.invited_user.username} ({self.status})"

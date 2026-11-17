@@ -11,8 +11,10 @@ from .models import DonationRequest, Notification, Rating
 def requests_with_trust_signals():
     return DonationRequest.objects.select_related(
         'receiver',
+        'receiver_organization',
         'donation',
         'donation__donor',
+        'donation__organization',
     ).annotate(
         receiver_completed_pickups=Count(
             'receiver__requests',
@@ -46,11 +48,12 @@ def create_request(request, pk):
         return redirect('donation_detail', pk=pk)
 
     if request.method == 'POST':
-        form = PickupRequestForm(request.POST, donation=donation)
+        form = PickupRequestForm(request.POST, donation=donation, user=request.user)
         if form.is_valid():
             pickup_request = DonationRequest.objects.create(
                 donation=donation,
                 receiver=request.user,
+                receiver_organization=form.cleaned_data['receiver_organization'],
                 pickup_time=form.cleaned_data['pickup_time'],
             )
             donation.status = 'requested'
@@ -61,6 +64,7 @@ def create_request(request, pk):
                 user=donation.donor,
                 message=(
                     f"{request.user.username} requested '{donation.food_name}' "
+                    f"{'on behalf of ' + pickup_request.receiver_organization.name + ' ' if pickup_request.receiver_organization else ''}"
                     f"for pickup at {local_pickup_time:%d %b %Y, %H:%M}."
                 ),
                 donation=donation,
@@ -68,7 +72,7 @@ def create_request(request, pk):
             messages.success(request, 'Pickup request submitted. The donor will confirm your time.')
             return redirect('my_requests')
     else:
-        form = PickupRequestForm(donation=donation)
+        form = PickupRequestForm(donation=donation, user=request.user)
 
     return render(request, 'requests_app/create_request.html', {
         'form': form,
@@ -78,7 +82,8 @@ def create_request(request, pk):
 @login_required
 def my_requests(request):
     reqs = requests_with_trust_signals().filter(
-        receiver=request.user
+        Q(receiver=request.user)
+        | Q(receiver_organization__memberships__user=request.user)
     ).order_by('-request_date')
     return render(request, 'requests_app/my_requests.html', {'requests': reqs})
 
@@ -88,7 +93,8 @@ def incoming_requests(request):
         messages.error(request, 'Only donors can view incoming requests.')
         return redirect('donation_list')
     reqs = requests_with_trust_signals().filter(
-        donation__donor=request.user
+        Q(donation__donor=request.user, donation__organization__isnull=True)
+        | Q(donation__organization__memberships__user=request.user)
     ).order_by('-request_date')
     return render(request, 'requests_app/incoming_requests.html', {'requests': reqs})
 
@@ -102,7 +108,17 @@ def update_request_status(request, pk, new_status):
         messages.error(request, 'Invalid request status.')
         return redirect('incoming_requests')
 
-    req = get_object_or_404(DonationRequest, pk=pk, donation__donor=request.user)
+    if request.user.role != 'donor':
+        messages.error(request, 'Only donors can update incoming requests.')
+        return redirect('donation_list')
+
+    req = get_object_or_404(
+        DonationRequest.objects.filter(
+            Q(donation__donor=request.user, donation__organization__isnull=True)
+            | Q(donation__organization__memberships__user=request.user)
+        ).distinct(),
+        pk=pk,
+    )
     if (new_status in {'accepted', 'rejected'} and req.status != 'pending') or (
         new_status == 'completed' and req.status != 'accepted'
     ):

@@ -1,9 +1,19 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.db import transaction
+from django.db.models import Q
+from django.utils import timezone
 from .forms import RegisterForm, ProfileEditForm, VerificationRequestForm
-from .models import User, VerificationRequest
+from .forms import OrganizationForm, OrganizationInviteForm
+from .models import (
+    Organization,
+    OrganizationInvitation,
+    OrganizationMembership,
+    User,
+    VerificationRequest,
+)
 from donations.models import FoodDonation
 from requests_app.models import DonationRequest
 from requests_app.models import Rating
@@ -68,7 +78,10 @@ def dashboard_view(request):
         context['ratings'] = ratings
         context['avg_rating'] = request.user.average_rating()
     elif request.user.role == 'receiver':
-        my_requests = DonationRequest.objects.filter(receiver=request.user)
+        my_requests = DonationRequest.objects.filter(
+            Q(receiver=request.user)
+            | Q(receiver_organization__memberships__user=request.user)
+        ).distinct()
         context['total_requests'] = my_requests.count()
         context['pending_count'] = my_requests.filter(status='pending').count()
         context['accepted_count'] = my_requests.filter(status='accepted').count()
@@ -152,3 +165,160 @@ def verification_request_view(request):
         form = VerificationRequestForm(user=request.user)
 
     return render(request, 'accounts/verification_request.html', {'form': form})
+
+
+@login_required
+def organization_list(request):
+    if request.user.role not in {'donor', 'receiver'}:
+        messages.error(request, 'Only donors and receivers can use organization workspaces.')
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        form = OrganizationForm(request.POST, user=request.user)
+        if form.is_valid():
+            with transaction.atomic():
+                form.save()
+            messages.success(request, 'Organization workspace created.')
+            return redirect('organizations')
+    else:
+        form = OrganizationForm(user=request.user)
+
+    organizations = Organization.objects.filter(
+        memberships__user=request.user,
+    ).distinct()
+    invitations = OrganizationInvitation.objects.filter(
+        invited_user=request.user,
+        status=OrganizationInvitation.STATUS_PENDING,
+    ).select_related('organization', 'invited_by')
+    return render(request, 'accounts/organizations.html', {
+        'form': form,
+        'organizations': organizations,
+        'invitations': invitations,
+    })
+
+
+@login_required
+def organization_detail(request, pk):
+    organization = get_object_or_404(
+        Organization.objects.filter(memberships__user=request.user),
+        pk=pk,
+    )
+    is_owner = organization.is_owner(request.user)
+    members = organization.memberships.select_related('user')
+    invitations = organization.invitations.filter(
+        status=OrganizationInvitation.STATUS_PENDING,
+    ).select_related('invited_user') if is_owner else OrganizationInvitation.objects.none()
+    invite_form = OrganizationInviteForm(
+        organization=organization,
+        invited_by=request.user,
+    ) if is_owner else None
+    donations = organization.donations.order_by('-created_at')
+    organization_requests = organization.organization_requests.select_related(
+        'donation',
+        'receiver',
+        'donation__donor',
+    ).order_by('-request_date')
+    return render(request, 'accounts/organization_detail.html', {
+        'organization': organization,
+        'is_owner': is_owner,
+        'members': members,
+        'invitations': invitations,
+        'invite_form': invite_form,
+        'donations': donations,
+        'organization_requests': organization_requests,
+    })
+
+
+@login_required
+def invite_organization_member(request, pk):
+    organization = get_object_or_404(Organization, pk=pk)
+    if request.method != 'POST':
+        messages.error(request, 'Use the invite form to add organization members.')
+        return redirect('organization_detail', pk=pk)
+    if not organization.is_owner(request.user):
+        messages.error(request, 'Only organization owners can invite members.')
+        return redirect('organizations')
+
+    form = OrganizationInviteForm(
+        request.POST,
+        organization=organization,
+        invited_by=request.user,
+    )
+    if form.is_valid():
+        with transaction.atomic():
+            form.save()
+        messages.success(request, 'Invitation sent. The user can accept it from Organizations.')
+        return redirect('organization_detail', pk=pk)
+
+    members = organization.memberships.select_related('user')
+    invitations = organization.invitations.filter(
+        status=OrganizationInvitation.STATUS_PENDING,
+    ).select_related('invited_user')
+    return render(request, 'accounts/organization_detail.html', {
+        'organization': organization,
+        'is_owner': True,
+        'members': members,
+        'invitations': invitations,
+        'invite_form': form,
+        'donations': organization.donations.order_by('-created_at'),
+        'organization_requests': organization.organization_requests.select_related(
+            'donation',
+            'receiver',
+            'donation__donor',
+        ).order_by('-request_date'),
+    })
+
+
+@login_required
+def respond_to_organization_invitation(request, pk, action):
+    if request.method != 'POST' or action not in {'accept', 'decline'}:
+        messages.error(request, 'Invalid invitation action.')
+        return redirect('organizations')
+
+    invitation = get_object_or_404(
+        OrganizationInvitation.objects.select_related('organization'),
+        pk=pk,
+        invited_user=request.user,
+        status=OrganizationInvitation.STATUS_PENDING,
+    )
+    if action == 'accept':
+        if request.user.role != invitation.organization.role:
+            messages.error(request, 'Your account role no longer matches this organization.')
+            return redirect('organizations')
+        with transaction.atomic():
+            OrganizationMembership.objects.get_or_create(
+                organization=invitation.organization,
+                user=request.user,
+                defaults={'role': OrganizationMembership.ROLE_MEMBER},
+            )
+            invitation.status = OrganizationInvitation.STATUS_ACCEPTED
+            invitation.responded_at = timezone.now()
+            invitation.save(update_fields=['status', 'responded_at'])
+        messages.success(request, f'You joined {invitation.organization.name}.')
+    else:
+        invitation.status = OrganizationInvitation.STATUS_DECLINED
+        invitation.responded_at = timezone.now()
+        invitation.save(update_fields=['status', 'responded_at'])
+        messages.success(request, 'Invitation declined.')
+    return redirect('organizations')
+
+
+@login_required
+def remove_organization_member(request, pk, user_id):
+    organization = get_object_or_404(Organization, pk=pk)
+    if request.method != 'POST':
+        messages.error(request, 'Use the member controls to update workspace membership.')
+        return redirect('organization_detail', pk=pk)
+    if not organization.is_owner(request.user):
+        messages.error(request, 'Only organization owners can remove members.')
+        return redirect('organization_detail', pk=pk)
+
+    membership = get_object_or_404(
+        OrganizationMembership.objects.select_related('user'),
+        organization=organization,
+        user_id=user_id,
+        role=OrganizationMembership.ROLE_MEMBER,
+    )
+    membership.delete()
+    messages.success(request, f'{membership.user.username} was removed from the workspace.')
+    return redirect('organization_detail', pk=pk)

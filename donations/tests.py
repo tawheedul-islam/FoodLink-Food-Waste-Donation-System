@@ -3,7 +3,7 @@ from django.urls import reverse
 from django.utils import timezone
 from datetime import timedelta
 
-from accounts.models import User
+from accounts.models import Organization, OrganizationMembership, User
 from requests_app.models import DonationRequest, Rating
 from .forms import FoodDonationForm
 from .models import FoodDonation
@@ -69,6 +69,129 @@ class DonorTrustSignalTests(TestCase):
         self.assertContains(response, 'FoodLink verified')
         self.assertContains(response, '1 completed donation')
         self.assertContains(response, '5.0 from 1 review')
+
+
+class OrganizationDonationAccessTests(TestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user(
+            username='org-donor-owner',
+            password='test-password',
+            role='donor',
+        )
+        self.member = User.objects.create_user(
+            username='org-donor-member',
+            password='test-password',
+            role='donor',
+        )
+        self.outsider = User.objects.create_user(
+            username='org-donor-outsider',
+            password='test-password',
+            role='donor',
+        )
+        self.receiver = User.objects.create_user(
+            username='org-donation-receiver',
+            password='test-password',
+            role='receiver',
+        )
+        self.organization = Organization.objects.create(
+            name='Shared Kitchen',
+            role='donor',
+            created_by=self.owner,
+        )
+        OrganizationMembership.objects.create(
+            organization=self.organization,
+            user=self.owner,
+            role=OrganizationMembership.ROLE_OWNER,
+        )
+        OrganizationMembership.objects.create(
+            organization=self.organization,
+            user=self.member,
+            role=OrganizationMembership.ROLE_MEMBER,
+        )
+        self.donation = FoodDonation.objects.create(
+            donor=self.owner,
+            organization=self.organization,
+            food_name='Team surplus',
+            category='raw',
+            quantity='3 kg',
+            expiry_time=timezone.now() + timedelta(days=2),
+            pickup_location='Shared Kitchen',
+        )
+
+    def test_member_can_see_and_manage_workspace_donation(self):
+        self.client.force_login(self.member)
+
+        listing = self.client.get(reverse('donation_list'))
+        self.assertContains(listing, 'Team surplus')
+        self.assertContains(listing, 'Shared Kitchen')
+
+        detail = self.client.get(reverse('donation_detail', args=[self.donation.pk]))
+        self.assertEqual(detail.status_code, 200)
+        self.assertTrue(detail.context['can_manage_donation'])
+
+        edit = self.client.get(reverse('donation_edit', args=[self.donation.pk]))
+        self.assertEqual(edit.status_code, 200)
+
+    def test_member_can_post_donation_for_workspace(self):
+        now = timezone.localtime()
+        self.client.force_login(self.member)
+
+        response = self.client.post(
+            reverse('donation_create'),
+            {
+                'organization': self.organization.pk,
+                'food_name': 'Member surplus',
+                'category': 'raw',
+                'quantity': '2 kg',
+                'description': '',
+                'allergen_info': '',
+                'storage_instructions': '',
+                'packaging_info': '',
+                'preparation_time': '',
+                'expiry_time': (now + timedelta(days=2)).strftime('%Y-%m-%dT%H:%M'),
+                'pickup_location': 'Shared Kitchen',
+                'pickup_latitude': '',
+                'pickup_longitude': '',
+                'pickup_window_start': (now + timedelta(hours=1)).strftime('%Y-%m-%dT%H:%M'),
+                'pickup_window_end': (now + timedelta(hours=2)).strftime('%Y-%m-%dT%H:%M'),
+            },
+        )
+
+        self.assertRedirects(response, reverse('donation_list'))
+        donation = FoodDonation.objects.get(food_name='Member surplus')
+        self.assertEqual(donation.donor, self.member)
+        self.assertEqual(donation.organization, self.organization)
+
+    def test_non_member_cannot_manage_workspace_donation(self):
+        self.client.force_login(self.outsider)
+
+        listing = self.client.get(reverse('donation_list'))
+        self.assertNotContains(listing, 'Team surplus')
+
+        detail = self.client.get(reverse('donation_detail', args=[self.donation.pk]))
+        self.assertFalse(detail.context['can_manage_donation'])
+
+        edit = self.client.get(reverse('donation_edit', args=[self.donation.pk]))
+        self.assertRedirects(edit, reverse('donation_list'))
+
+    def test_workspace_member_can_process_incoming_request(self):
+        donation_request = DonationRequest.objects.create(
+            donation=self.donation,
+            receiver=self.receiver,
+            pickup_time=timezone.now() + timedelta(days=1),
+        )
+        self.client.force_login(self.member)
+
+        incoming = self.client.get(reverse('incoming_requests'))
+        self.assertContains(incoming, 'Team surplus')
+
+        response = self.client.post(
+            reverse('update_request_status', args=[donation_request.pk, 'accepted']),
+        )
+
+        self.assertRedirects(response, reverse('incoming_requests'))
+        donation_request.refresh_from_db()
+        self.assertEqual(donation_request.status, 'accepted')
 
 
 class NearbyDonationTests(TestCase):

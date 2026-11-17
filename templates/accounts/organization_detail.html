@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% block title %}{{ organization.name }}{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-4">
+    <div>
+        <a href="{% url 'organizations' %}" class="small text-decoration-none"><i class="bi bi-arrow-left me-1" aria-hidden="true"></i>All workspaces</a>
+        <h1 class="h3 fw-bold mt-2 mb-1">{{ organization.name }}</h1>
+        <span class="badge rounded-pill text-bg-success">{{ organization.get_role_display }}</span>
+        <span class="badge rounded-pill text-bg-light">{{ members.count }} member{{ members.count|pluralize }}</span>
+        {% if organization.description %}<p class="text-muted mt-2 mb-0">{{ organization.description }}</p>{% endif %}
+    </div>
+    {% if organization.role == 'donor' %}
+        <a href="{% url 'donation_create' %}" class="btn btn-success"><i class="bi bi-plus-circle me-1" aria-hidden="true"></i>Post a donation</a>
+    {% endif %}
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        {% if organization.role == 'donor' %}
+        <section class="card p-3 p-md-4" aria-labelledby="workspace-donations-heading">
+            <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
+                <h2 id="workspace-donations-heading" class="h5 fw-bold mb-0">Workspace donations</h2>
+                <span class="small text-muted">{{ donations.count }} total</span>
+            </div>
+            <div class="list-group list-group-flush">
+                {% for donation in donations %}
+                    <a class="list-group-item list-group-item-action px-0" href="{% url 'donation_detail' donation.pk %}">
+                        <div class="d-flex align-items-center justify-content-between gap-2">
+                            <span class="fw-semibold">{{ donation.food_name }}</span>
+                            <span class="badge text-bg-light">{{ donation.get_status_display }}</span>
+                        </div>
+                        <small class="text-muted">Posted by {{ donation.donor.username }} · {{ donation.created_at|date:"d M Y" }}</small>
+                    </a>
+                {% empty %}
+                    <p class="text-muted mb-0">No donations have been posted by this workspace yet.</p>
+                {% endfor %}
+            </div>
+        </section>
+        {% else %}
+        <section class="card p-3 p-md-4" aria-labelledby="workspace-requests-heading">
+            <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
+                <h2 id="workspace-requests-heading" class="h5 fw-bold mb-0">Workspace requests</h2>
+                <span class="small text-muted">{{ organization_requests.count }} total</span>
+            </div>
+            <div class="list-group list-group-flush">
+                {% for request_item in organization_requests %}
+                    <div class="list-group-item px-0">
+                        <div class="d-flex align-items-center justify-content-between gap-2">
+                            <span class="fw-semibold">{{ request_item.donation.food_name }}</span>
+                            <span class="badge text-bg-light">{{ request_item.get_status_display }}</span>
+                        </div>
+                        <small class="text-muted">Requested by {{ request_item.receiver.username }} · Donor {{ request_item.donation.donor.username }} · {{ request_item.request_date|date:"d M Y" }}</small>
+                    </div>
+                {% empty %}
+                    <p class="text-muted mb-0">No requests have been made on behalf of this workspace yet.</p>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+    </div>
+
+    <div class="col-lg-5">
+        <section class="card p-3 p-md-4 mb-4" aria-labelledby="workspace-members-heading">
+            <h2 id="workspace-members-heading" class="h5 fw-bold mb-3">Members</h2>
+            <div class="d-grid gap-3">
+                {% for membership in members %}
+                    <div class="d-flex align-items-center justify-content-between gap-2">
+                        <div>
+                            <strong>{{ membership.user.username }}</strong>
+                            <div class="small text-muted">{{ membership.user.email|default:"No email set" }} · {{ membership.get_role_display }}</div>
+                        </div>
+                        {% if is_owner and membership.role == 'member' %}
+                            <form method="post" action="{% url 'organization_remove_member' organization.pk membership.user_id %}">
+                                {% csrf_token %}<button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                            </form>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        {% if is_owner %}
+        <section class="card p-3 p-md-4" aria-labelledby="workspace-invite-heading">
+            <h2 id="workspace-invite-heading" class="h5 fw-bold mb-2">Invite a teammate</h2>
+            <p class="small text-muted">They must already have a FoodLink {{ organization.get_role_display|lower }} account.</p>
+            <form method="post" action="{% url 'organization_invite' organization.pk %}">
+                {% csrf_token %}
+                <label class="form-label fw-semibold" for="{{ invite_form.username.id_for_label }}">{{ invite_form.username.label }}</label>
+                {{ invite_form.username }}
+                {% for error in invite_form.username.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                {% for error in invite_form.non_field_errors %}<div class="alert alert-danger mt-2">{{ error }}</div>{% endfor %}
+                <button class="btn btn-success w-100 mt-3" type="submit"><i class="bi bi-person-plus me-1" aria-hidden="true"></i>Send invitation</button>
+            </form>
+            {% if invitations %}
+                <hr>
+                <h3 class="h6 fw-bold">Pending invitations</h3>
+                {% for invitation in invitations %}
+                    <p class="small mb-1">{{ invitation.invited_user.username }} <span class="text-muted">· {{ invitation.created_at|date:"d M Y" }}</span></p>
+                {% endfor %}
+            {% endif %}
+        </section>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

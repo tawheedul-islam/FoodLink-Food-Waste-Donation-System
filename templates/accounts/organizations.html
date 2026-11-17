@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% block title %}Organization Workspaces{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+    <div>
+        <h1 class="h3 fw-bold mb-1">Organization workspaces</h1>
+        <p class="text-muted mb-0">Work together with your FoodLink team using shared donations and requests.</p>
+    </div>
+</div>
+
+{% if invitations %}
+<section class="card p-3 p-md-4 mb-4" aria-labelledby="workspace-invitations-heading">
+    <h2 id="workspace-invitations-heading" class="h5 fw-bold mb-3">Invitations for you</h2>
+    <div class="d-grid gap-2">
+        {% for invitation in invitations %}
+        <div class="workspace-invitation d-flex flex-wrap align-items-center justify-content-between gap-3 rounded-3 p-3">
+            <div>
+                <strong>{{ invitation.organization.name }}</strong>
+                <div class="small text-muted">Invited by {{ invitation.invited_by.username }} · {{ invitation.organization.get_role_display }}</div>
+            </div>
+            <div class="d-flex gap-2">
+                <form method="post" action="{% url 'organization_invitation_response' invitation.pk 'accept' %}">
+                    {% csrf_token %}<button class="btn btn-success btn-sm" type="submit">Accept</button>
+                </form>
+                <form method="post" action="{% url 'organization_invitation_response' invitation.pk 'decline' %}">
+                    {% csrf_token %}<button class="btn btn-outline-secondary btn-sm" type="submit">Decline</button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<div class="row g-4 align-items-start">
+    <div class="col-lg-7">
+        <section aria-labelledby="your-workspaces-heading">
+            <h2 id="your-workspaces-heading" class="h5 fw-bold mb-3">Your workspaces</h2>
+            <div class="d-grid gap-3">
+                {% for organization in organizations %}
+                    <a class="card workspace-card p-3 p-md-4 text-decoration-none text-reset" href="{% url 'organization_detail' organization.pk %}">
+                        <div class="d-flex flex-wrap align-items-start justify-content-between gap-2">
+                            <div>
+                                <h3 class="h5 fw-bold mb-1"><i class="bi bi-building text-success me-1" aria-hidden="true"></i>{{ organization.name }}</h3>
+                                <span class="badge text-bg-light">{{ organization.get_role_display }}</span>
+                            </div>
+                            <span class="small text-muted">{{ organization.memberships.count }} member{{ organization.memberships.count|pluralize }}</span>
+                        </div>
+                        {% if organization.description %}<p class="text-muted mb-0 mt-2">{{ organization.description|truncatechars:160 }}</p>{% endif %}
+                    </a>
+                {% empty %}
+                    <div class="donation-empty-state text-center p-4">
+                        <div class="empty-state-icon"><i class="bi bi-buildings" aria-hidden="true"></i></div>
+                        <p class="text-muted mt-3 mb-0">You are not part of an organization yet. Create one or accept an invitation.</p>
+                    </div>
+                {% endfor %}
+            </div>
+        </section>
+    </div>
+    <div class="col-lg-5">
+        <section class="card p-3 p-md-4" aria-labelledby="create-workspace-heading">
+            <h2 id="create-workspace-heading" class="h5 fw-bold mb-2">Create a workspace</h2>
+            <p class="small text-muted">Your account becomes its owner. Invite teammates by their existing FoodLink username.</p>
+            <form method="post">
+                {% csrf_token %}
+                {% for field in form %}
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                    </div>
+                {% endfor %}
+                {% for error in form.non_field_errors %}<div class="alert alert-danger">{{ error }}</div>{% endfor %}
+                <button class="btn btn-success w-100" type="submit"><i class="bi bi-plus-circle me-1" aria-hidden="true"></i>Create workspace</button>
+            </form>
+        </section>
+    </div>
+</div>
+{% endblock %}

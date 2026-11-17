@@ -38,7 +38,12 @@
         {% endif %}
         <p><strong>Expiry Time:</strong> {{ donation.expiry_time }}</p>
         <div class="donor-profile-summary rounded-3 p-3 my-3">
-            <strong>Posted by:</strong> {{ donation.donor.username }}
+            {% if donation.organization %}
+                <strong>Donated by:</strong> {{ donation.organization.name }}
+                <div class="small text-muted">Posted by {{ donation.donor.username }}</div>
+            {% else %}
+                <strong>Posted by:</strong> {{ donation.donor.username }}
+            {% endif %}
             {% include 'accounts/_verified_badge.html' with profile_user=donation.donor %}
             <div class="small text-muted mt-2">
                 <i class="bi bi-check2-circle text-success" aria-hidden="true"></i>
@@ -53,7 +58,7 @@
             <a href="{% url 'create_request' donation.pk %}" class="btn btn-success">Request This Donation</a>
         {% endif %}
 
-        {% if donation.donor == user %}
+        {% if can_manage_donation %}
             <a href="{% url 'donation_edit' donation.pk %}" class="btn btn-outline-primary">Edit</a>
             <a href="{% url 'donation_delete' donation.pk %}" class="btn btn-outline-danger">Delete</a>
         {% endif %}
@@ -67,6 +72,7 @@
         <div class="card shadow-sm">
             <div class="card-body">
                 <p class="mb-1"><strong>Requested by:</strong> {{ req.receiver.username }}</p>
+                {% if req.receiver_organization %}<p class="small text-muted mb-1">On behalf of {{ req.receiver_organization.name }}</p>{% endif %}
                 {% include 'requests_app/_user_trust.html' with trust_user=req.receiver trust_completed_count=req.receiver_completed_pickups %}
                 <p class="mb-2"><strong>Date:</strong> {{ req.request_date|date:"d M Y, H:i" }}</p>
                 {% if req.pickup_time %}<p class="mb-2"><strong>Pickup time:</strong> {{ req.pickup_time|date:"D, d M Y, H:i" }}{% if req.status == 'accepted' %} <span class="badge text-bg-success">Confirmed</span>{% endif %}</p>{% endif %}

@@ -35,6 +35,11 @@
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'donation_list' %}active{% endif %}" href="{% url 'donation_list' %}"><i class="bi bi-basket2"></i> Donations</a>
                     </li>
+                    {% if user.role == 'donor' or user.role == 'receiver' %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'organizations' or request.resolver_match.url_name == 'organization_detail' %}active{% endif %}" href="{% url 'organizations' %}"><i class="bi bi-buildings"></i> Organizations</a>
+                    </li>
+                    {% endif %}
                     {% if user.role == 'receiver' %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'my_requests' %}active{% endif %}" href="{% url 'my_requests' %}"><i class="bi bi-send"></i> My Requests</a>

@@ -1,5 +1,6 @@
 from django import forms
 from django.utils import timezone
+from accounts.models import Organization, OrganizationMembership
 from .models import FoodDonation
 
 class FoodDonationForm(forms.ModelForm):
@@ -10,7 +11,9 @@ class FoodDonationForm(forms.ModelForm):
                   'preparation_time', 'expiry_time', 'pickup_location',
                   'pickup_latitude', 'pickup_longitude',
                   'pickup_window_start', 'pickup_window_end', 'image']
+        fields = ['organization', *fields]
         widgets = {
+            'organization': forms.Select(attrs={'class': 'form-select'}),
             'food_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Chicken Biryani'}),
             'category': forms.Select(attrs={'class': 'form-select'}),
             'quantity': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 10 kg or 20 plates'}),
@@ -48,8 +51,16 @@ class FoodDonationForm(forms.ModelForm):
             'image': forms.ClearableFileInput(attrs={'class': 'form-control'}),
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields['organization'].required = False
+        if user and user.is_authenticated and user.role == 'donor':
+            self.fields['organization'].queryset = Organization.objects.filter(
+                memberships__user=user,
+                role='donor',
+            ).distinct()
+        else:
+            self.fields['organization'].queryset = Organization.objects.none()
         if not self.instance.pk:
             self.fields['pickup_window_start'].required = True
             self.fields['pickup_window_end'].required = True

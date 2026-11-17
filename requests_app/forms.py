@@ -1,10 +1,18 @@
 from django import forms
 from django.utils import timezone
+from accounts.models import Organization, OrganizationMembership
 from .models import Rating
 from donations.models import FoodDonation
 
 
 class PickupRequestForm(forms.Form):
+    receiver_organization = forms.ModelChoiceField(
+        queryset=Organization.objects.none(),
+        required=False,
+        label='Request on behalf of',
+        empty_label='Myself',
+        widget=forms.Select(attrs={'class': 'form-select'}),
+    )
     pickup_time = forms.DateTimeField(
         label='Preferred pickup time',
         input_formats=['%Y-%m-%dT%H:%M'],
@@ -14,9 +22,14 @@ class PickupRequestForm(forms.Form):
         ),
     )
 
-    def __init__(self, *args, donation, **kwargs):
+    def __init__(self, *args, donation, user, **kwargs):
         self.donation = donation
+        self.user = user
         super().__init__(*args, **kwargs)
+        self.fields['receiver_organization'].queryset = Organization.objects.filter(
+            role='receiver',
+            memberships__user=user,
+        ).distinct()
         if donation.pickup_window_start:
             self.fields['pickup_time'].widget.attrs['min'] = timezone.localtime(
                 donation.pickup_window_start

@@ -18,7 +18,7 @@ RADIUS_CHOICES = (5, 10, 25, 50, 100)
 
 
 def donations_with_trust_signals():
-    return FoodDonation.objects.select_related('donor').annotate(
+    return FoodDonation.objects.select_related('donor', 'organization').annotate(
         donor_completed_donations=Count(
             'donor__donations',
             filter=Q(donor__donations__status='completed'),
@@ -44,7 +44,10 @@ def _distance_km(latitude, longitude, target_latitude, target_longitude):
 @login_required
 def donation_list(request):
     if request.user.role == 'donor':
-        donations = donations_with_trust_signals().filter(donor=request.user).order_by('-created_at')
+        donations = donations_with_trust_signals().filter(
+            Q(donor=request.user, organization__isnull=True)
+            | Q(organization__memberships__user=request.user)
+        ).distinct().order_by('-created_at')
     else:
        donations = donations_with_trust_signals().filter(
            status='posted',
@@ -168,7 +171,7 @@ def donation_create(request):
         return redirect('donation_list')
 
     if request.method == 'POST':
-        form = FoodDonationForm(request.POST , request.FILES)
+        form = FoodDonationForm(request.POST, request.FILES, user=request.user)
         if form.is_valid():
             donation = form.save(commit=False)
             donation.donor = request.user
@@ -176,14 +179,14 @@ def donation_create(request):
             messages.success(request, 'Food donation posted successfully!')
             return redirect('donation_list')
     else:
-        form = FoodDonationForm()
+        form = FoodDonationForm(user=request.user)
     return render(request, 'donations/donation_form.html', {'form': form})
 
 @login_required
 def donation_detail(request, pk):
     donation = get_object_or_404(donations_with_trust_signals(), pk=pk)
     donation_requests = None
-    if donation.donor == request.user:
+    if donation.can_be_managed_by(request.user):
         donation_requests = DonationRequest.objects.filter(
             donation=donation
         ).select_related('receiver').annotate(
@@ -195,32 +198,38 @@ def donation_detail(request, pk):
         ).order_by('-request_date')
     return render(request, 'donations/donation_detail.html', {
         'donation': donation,
-        'donation_requests': donation_requests
+        'donation_requests': donation_requests,
+        'can_manage_donation': donation.can_be_managed_by(request.user),
     })
 
 @login_required
 def donation_edit(request, pk):
     donation = get_object_or_404(FoodDonation, pk=pk)
 
-    if donation.donor != request.user:
+    if not donation.can_be_managed_by(request.user):
         messages.error(request, 'You are not allowed to edit this donation.')
         return redirect('donation_list')
 
     if request.method == 'POST':
-        form = FoodDonationForm(request.POST, request.FILES, instance=donation)
+        form = FoodDonationForm(
+            request.POST,
+            request.FILES,
+            instance=donation,
+            user=request.user,
+        )
         if form.is_valid():
             form.save()
             messages.success(request, 'Donation updated successfully!')
             return redirect('donation_detail', pk=pk)
     else:
-        form = FoodDonationForm(instance=donation)
+        form = FoodDonationForm(instance=donation, user=request.user)
     return render(request, 'donations/donation_form.html', {'form': form, 'editing': True})
 
 @login_required
 def donation_delete(request, pk):
     donation = get_object_or_404(FoodDonation, pk=pk)
 
-    if donation.donor != request.user:
+    if not donation.can_be_managed_by(request.user):
         messages.error(request, 'You are not allowed to delete this donation.')
         return redirect('donation_list')
 

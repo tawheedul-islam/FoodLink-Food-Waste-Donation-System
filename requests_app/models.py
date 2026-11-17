@@ -12,6 +12,13 @@ class DonationRequest(models.Model):
 
     donation = models.ForeignKey(FoodDonation, on_delete=models.CASCADE, related_name='requests')
     receiver = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='requests')
+    receiver_organization = models.ForeignKey(
+        'accounts.Organization',
+        on_delete=models.SET_NULL,
+        related_name='organization_requests',
+        blank=True,
+        null=True,
+    )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     request_date = models.DateTimeField(auto_now_add=True)
     pickup_time = models.DateTimeField(blank=True, null=True)
