@@ -96,6 +96,56 @@ class DashboardImpactTests(TestCase):
         self.assertContains(response, 'of your pickups completed')
 
 
+class DashboardOnboardingTests(TestCase):
+    def setUp(self):
+        self.donor = User.objects.create_user(
+            username='new-donor',
+            password='test-password',
+            role='donor',
+        )
+        self.receiver = User.objects.create_user(
+            username='new-receiver',
+            password='test-password',
+            role='receiver',
+        )
+
+    def test_new_donor_sees_first_donation_and_workspace_actions(self):
+        self.client.force_login(self.donor)
+
+        response = self.client.get(reverse('dashboard'))
+
+        self.assertContains(response, 'A good place to start')
+        self.assertContains(response, 'Post your first donation')
+        self.assertContains(response, reverse('donation_create'))
+        self.assertContains(response, 'Create or join a workspace')
+
+    def test_new_receiver_sees_browse_and_workspace_actions(self):
+        self.client.force_login(self.receiver)
+
+        response = self.client.get(reverse('dashboard'))
+
+        self.assertContains(response, 'A good place to start')
+        self.assertContains(response, 'Browse available donations')
+        self.assertContains(response, reverse('donation_list'))
+        self.assertContains(response, 'Create or join a workspace')
+
+    def test_returning_donor_without_workspaces_only_sees_workspace_prompt(self):
+        FoodDonation.objects.create(
+            donor=self.donor,
+            food_name='Already shared',
+            category='raw',
+            quantity='1 kg',
+            expiry_time=timezone.now() + timedelta(days=1),
+            pickup_location='Community center',
+        )
+        self.client.force_login(self.donor)
+
+        response = self.client.get(reverse('dashboard'))
+
+        self.assertContains(response, 'Create or join a workspace')
+        self.assertNotContains(response, 'Post your first donation')
+
+
 class UserVerificationTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(

@@ -42,6 +42,48 @@
 </section>
 {% endif %}
 
+{% if user.role == 'donor' or user.role == 'receiver' %}
+    {% if needs_first_donation or needs_first_request or workspace_count == 0 or pending_workspace_invitation_count %}
+    <section class="dashboard-onboarding card p-3 p-md-4 mb-4 reveal" aria-labelledby="dashboard-onboarding-heading">
+        <div class="d-flex align-items-start gap-3">
+            <div class="onboarding-icon" aria-hidden="true"><i class="bi bi-stars"></i></div>
+            <div class="flex-grow-1">
+                <h2 id="dashboard-onboarding-heading" class="h5 fw-bold mb-1">A good place to start</h2>
+                <p class="text-muted mb-3">
+                    {% if user.role == 'donor' and needs_first_donation %}
+                        Share your first donation so nearby receivers can request it.
+                    {% elif user.role == 'receiver' and needs_first_request %}
+                        Browse available food and send your first pickup request.
+                    {% elif workspace_count == 0 %}
+                        Bring your teammates together in a shared organization workspace.
+                    {% else %}
+                        Continue building your FoodLink community.
+                    {% endif %}
+                    {% if pending_workspace_invitation_count %}
+                        You have {{ pending_workspace_invitation_count }} workspace invitation{{ pending_workspace_invitation_count|pluralize }} waiting.
+                    {% elif workspace_count == 0 %}
+                        You can create a workspace or accept an invitation from another team.
+                    {% endif %}
+                </p>
+                <div class="d-flex flex-wrap gap-2">
+                    {% if user.role == 'donor' and needs_first_donation %}
+                        <a href="{% url 'donation_create' %}" class="btn btn-success"><i class="bi bi-plus-circle me-1" aria-hidden="true"></i>Post your first donation</a>
+                    {% elif user.role == 'receiver' and needs_first_request %}
+                        <a href="{% url 'donation_list' %}" class="btn btn-success"><i class="bi bi-search me-1" aria-hidden="true"></i>Browse available donations</a>
+                    {% endif %}
+                    {% if workspace_count == 0 or pending_workspace_invitation_count %}
+                        <a href="{% url 'organizations' %}" class="btn btn-outline-success">
+                            <i class="bi bi-buildings me-1" aria-hidden="true"></i>
+                            {% if pending_workspace_invitation_count %}Review workspace invitation{{ pending_workspace_invitation_count|pluralize }}{% else %}Create or join a workspace{% endif %}
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </section>
+    {% endif %}
+{% endif %}
+
 {% if user.role == 'donor' %}
 <h5 class="fw-semibold mb-3">Your Donation Summary</h5>
 <div class="row g-3 mb-4 text-center">

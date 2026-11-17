@@ -278,6 +278,23 @@ body {
     border-left: 4px solid var(--fl-green);
     background: var(--bs-body-bg);
 }
+.dashboard-onboarding {
+    border-left: 4px solid var(--fl-green);
+    background:
+        radial-gradient(ellipse at top right, rgba(32, 201, 151, .1), transparent 55%),
+        var(--bs-body-bg);
+}
+.onboarding-icon {
+    display: grid;
+    flex: 0 0 2.75rem;
+    width: 2.75rem;
+    height: 2.75rem;
+    place-items: center;
+    border-radius: .9rem;
+    color: var(--fl-green);
+    background: rgba(25, 135, 84, .12);
+    font-size: 1.25rem;
+}
 .workspace-card {
     transition: transform .2s ease, box-shadow .2s ease;
 }

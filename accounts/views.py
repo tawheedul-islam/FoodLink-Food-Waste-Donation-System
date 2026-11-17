@@ -63,6 +63,10 @@ def dashboard_view(request):
     if request.user.role == 'donor':
         donations = FoodDonation.objects.filter(donor=request.user)
         context['total_donations'] = donations.count()
+        context['needs_first_donation'] = not FoodDonation.objects.filter(
+            Q(donor=request.user, organization__isnull=True)
+            | Q(organization__memberships__user=request.user)
+        ).exists()
         context['posted_count'] = donations.filter(status='posted').count()
         context['completed_count'] = donations.filter(status='completed').count()
         context['pending_requests_count'] = DonationRequest.objects.filter(
@@ -83,12 +87,20 @@ def dashboard_view(request):
             | Q(receiver_organization__memberships__user=request.user)
         ).distinct()
         context['total_requests'] = my_requests.count()
+        context['needs_first_request'] = not my_requests.exists()
         context['pending_count'] = my_requests.filter(status='pending').count()
         context['accepted_count'] = my_requests.filter(status='accepted').count()
         context['completed_count'] = my_requests.filter(status='completed').count()
         context['personal_completed_count'] = context['completed_count']
 
     if request.user.role in {'donor', 'receiver'}:
+        context['workspace_count'] = OrganizationMembership.objects.filter(
+            user=request.user,
+        ).count()
+        context['pending_workspace_invitation_count'] = OrganizationInvitation.objects.filter(
+            invited_user=request.user,
+            status=OrganizationInvitation.STATUS_PENDING,
+        ).count()
         context['latest_verification_request'] = VerificationRequest.objects.filter(
             user=request.user,
         ).first()
