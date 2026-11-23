@@ -19,7 +19,7 @@ from django.http import HttpResponse, HttpResponseForbidden
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_CENTER
+from reportlab.lib.enums import TA_LEFT, TA_RIGHT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import mm
@@ -285,52 +285,195 @@ def donation_receipt(request, pk):
     )
 
     output = BytesIO()
+    page_width, _ = A4
     document = SimpleDocTemplate(
         output,
         pagesize=A4,
-        rightMargin=20 * mm,
-        leftMargin=20 * mm,
-        topMargin=20 * mm,
-        bottomMargin=20 * mm,
+        rightMargin=19 * mm,
+        leftMargin=19 * mm,
+        topMargin=17 * mm,
+        bottomMargin=21 * mm,
         title=f"FoodLink donation receipt {receipt.receipt_number}",
         author='FoodLink',
+        subject='Donation handover acknowledgment',
     )
     styles = getSampleStyleSheet()
     styles.add(ParagraphStyle(
+        name='ReceiptBrand',
+        parent=styles['BodyText'],
+        fontName='Helvetica-Bold',
+        fontSize=12,
+        leading=15,
+        textColor=colors.white,
+    ))
+    styles.add(ParagraphStyle(
+        name='ReceiptBrandTag',
+        parent=styles['BodyText'],
+        fontName='Helvetica-Bold',
+        fontSize=8,
+        leading=10,
+        alignment=TA_RIGHT,
+        textColor=colors.HexColor('#dcefe4'),
+    ))
+    styles.add(ParagraphStyle(
         name='ReceiptTitle',
         parent=styles['Title'],
-        alignment=TA_CENTER,
+        fontName='Helvetica-Bold',
+        fontSize=21,
+        leading=26,
+        alignment=TA_LEFT,
+        textColor=colors.HexColor('#173b2b'),
+        spaceAfter=2 * mm,
+    ))
+    styles.add(ParagraphStyle(
+        name='ReceiptSubtitle',
+        parent=styles['BodyText'],
+        fontSize=9,
+        leading=13,
+        textColor=colors.HexColor('#64736b'),
+    ))
+    styles.add(ParagraphStyle(
+        name='ReceiptSection',
+        parent=styles['Heading3'],
+        fontName='Helvetica-Bold',
+        fontSize=10,
+        leading=13,
         textColor=colors.HexColor('#146c43'),
-        spaceAfter=6 * mm,
+        spaceBefore=4 * mm,
+        spaceAfter=2 * mm,
+    ))
+    styles.add(ParagraphStyle(
+        name='ReceiptLabel',
+        parent=styles['BodyText'],
+        fontSize=8,
+        leading=11,
+        textColor=colors.HexColor('#68756e'),
+    ))
+    styles.add(ParagraphStyle(
+        name='ReceiptValue',
+        parent=styles['BodyText'],
+        fontName='Helvetica-Bold',
+        fontSize=9,
+        leading=13,
+        textColor=colors.HexColor('#26352d'),
     ))
     styles.add(ParagraphStyle(
         name='ReceiptNote',
         parent=styles['BodyText'],
-        textColor=colors.HexColor('#555555'),
-        leading=15,
+        fontSize=8,
+        leading=12,
+        textColor=colors.HexColor('#4f5f56'),
     ))
+    content_width = page_width - 38 * mm
+    green = colors.HexColor('#146c43')
+    pale_green = colors.HexColor('#edf5f0')
+    border = colors.HexColor('#dce6df')
+
+    def field(label, value, value_style='ReceiptValue'):
+        return [
+            Paragraph(escape(label.upper()), styles['ReceiptLabel']),
+            Paragraph(escape(value), styles[value_style]),
+        ]
+
+    def draw_footer(canvas, doc):
+        canvas.saveState()
+        canvas.setStrokeColor(border)
+        canvas.setLineWidth(.6)
+        canvas.line(19 * mm, 16 * mm, page_width - 19 * mm, 16 * mm)
+        canvas.setFont('Helvetica', 7.5)
+        canvas.setFillColor(colors.HexColor('#68756e'))
+        canvas.drawString(19 * mm, 10 * mm, 'FoodLink | Donation handover acknowledgment')
+        canvas.drawRightString(page_width - 19 * mm, 10 * mm, f'Page {doc.page}')
+        canvas.restoreState()
 
     story = [
-        Paragraph('FoodLink Donation Receipt', styles['ReceiptTitle']),
-        Paragraph(
-            'Donation handover confirmation — this document is not an invoice and records no sale or payment.',
-            styles['ReceiptNote'],
+        Table(
+            [[
+                Paragraph('FoodLink', styles['ReceiptBrand']),
+                Paragraph('DONATION RECEIPT', styles['ReceiptBrandTag']),
+            ]],
+            colWidths=[content_width * .55, content_width * .45],
+            style=TableStyle([
+                ('BACKGROUND', (0, 0), (-1, -1), green),
+                ('LEFTPADDING', (0, 0), (-1, -1), 12),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 12),
+                ('TOPPADDING', (0, 0), (-1, -1), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ]),
         ),
-        Spacer(1, 7 * mm),
+        Spacer(1, 8 * mm),
+        Paragraph('Donation handover acknowledgment', styles['ReceiptTitle']),
+        Paragraph('A record of a completed food donation between the parties below.', styles['ReceiptSubtitle']),
+        Spacer(1, 5 * mm),
     ]
-    receipt_rows = [
-        ('Receipt number', str(receipt.receipt_number)),
-        ('Issued', timezone.localtime(receipt.issued_at).strftime('%d %b %Y, %H:%M %Z')),
-        ('Donation', receipt.donation_name),
-        ('Quantity', receipt.quantity),
-        ('Donor', receipt.donor_name),
-    ]
-    if receipt.donor_organization_name:
-        receipt_rows.append(('Donor organization', receipt.donor_organization_name))
-    receipt_rows.append(('Receiver', receipt.receiver_name))
-    if receipt.receiver_organization_name:
-        receipt_rows.append(('Receiver organization', receipt.receiver_organization_name))
-    receipt_rows.extend([
+
+    receipt_meta = Table(
+        [[
+            [
+                Paragraph('RECEIPT NUMBER', styles['ReceiptLabel']),
+                Paragraph(escape(str(receipt.receipt_number)), styles['ReceiptValue']),
+            ],
+            [
+                Paragraph('ISSUED', styles['ReceiptLabel']),
+                Paragraph(
+                    timezone.localtime(receipt.issued_at).strftime('%d %b %Y, %H:%M %Z'),
+                    styles['ReceiptValue'],
+                ),
+            ],
+        ]],
+        colWidths=[content_width * .62, content_width * .38],
+        style=TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), pale_green),
+            ('BOX', (0, 0), (-1, -1), .7, border),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 10),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ]),
+    )
+    story.extend([
+        receipt_meta,
+        Paragraph('Donation details', styles['ReceiptSection']),
+        Table(
+            [[field('Food item', receipt.donation_name), field('Quantity', receipt.quantity)]],
+            colWidths=[content_width * .62, content_width * .38],
+            style=TableStyle([
+                ('BOX', (0, 0), (-1, -1), .7, border),
+                ('INNERGRID', (0, 0), (-1, -1), .5, border),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 10),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+                ('TOPPADDING', (0, 0), (-1, -1), 9),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 9),
+            ]),
+        ),
+        Paragraph('Parties', styles['ReceiptSection']),
+        Table(
+            [[
+                field('Donated by', receipt.donor_name)
+                + field('Organization', receipt.donor_organization_name or 'Individual donor'),
+                field('Received by', receipt.receiver_name)
+                + field('Organization', receipt.receiver_organization_name or 'Individual receiver'),
+            ]],
+            colWidths=[content_width / 2, content_width / 2],
+            style=TableStyle([
+                ('BACKGROUND', (0, 0), (0, 0), pale_green),
+                ('BACKGROUND', (1, 0), (1, 0), colors.HexColor('#f7f9f7')),
+                ('BOX', (0, 0), (-1, -1), .7, border),
+                ('INNERGRID', (0, 0), (-1, -1), .5, border),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 10),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+                ('TOPPADDING', (0, 0), (-1, -1), 9),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 9),
+            ]),
+        ),
+        Paragraph('Handover details', styles['ReceiptSection']),
+    ])
+
+    handover_rows = [
         ('Pickup location', receipt.pickup_location),
         (
             'Scheduled pickup',
@@ -338,40 +481,51 @@ def donation_receipt(request, pk):
             if receipt.pickup_time else 'Not specified',
         ),
         (
-            'Handover marked complete',
+            'Marked complete',
             timezone.localtime(receipt.completed_at).strftime('%d %b %Y, %H:%M %Z')
             if receipt.completed_at else 'Not recorded',
         ),
         (
-            'Received confirmed',
+            'Receiver confirmation',
             timezone.localtime(receipt.issued_at).strftime('%d %b %Y, %H:%M %Z'),
         ),
-    ])
-    table = Table(
-        [[Paragraph(f'<b>{escape(label)}</b>', styles['BodyText']),
-          Paragraph(escape(value), styles['BodyText'])]
-         for label, value in receipt_rows],
-        colWidths=[48 * mm, 112 * mm],
-        hAlign='LEFT',
+    ]
+    handover_table = Table(
+        [[Paragraph(escape(label), styles['ReceiptLabel']),
+          Paragraph(escape(value), styles['ReceiptValue'])]
+         for label, value in handover_rows],
+        colWidths=[content_width * .34, content_width * .66],
+        style=TableStyle([
+            ('LINEBELOW', (0, 0), (-1, -2), .5, border),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 8),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ]),
     )
-    table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f1f8f4')),
-        ('GRID', (0, 0), (-1, -1), .5, colors.HexColor('#d9e2dc')),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('LEFTPADDING', (0, 0), (-1, -1), 8),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
-        ('TOPPADDING', (0, 0), (-1, -1), 8),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-    ]))
     story.extend([
-        table,
-        Spacer(1, 8 * mm),
-        Paragraph(
-            'The receiver confirmed that the donation was received. FoodLink records the details above as a donation acknowledgment.',
-            styles['ReceiptNote'],
+        handover_table,
+        Spacer(1, 5 * mm),
+        Table(
+            [[Paragraph(
+                '<b>Receipt confirmation</b><br/>'
+                'The receiver confirmed that the donation was received. This document acknowledges a donation handover; '
+                'it is not an invoice, proof of payment, or valuation of the donated items.',
+                styles['ReceiptNote'],
+            )]],
+            colWidths=[content_width],
+            style=TableStyle([
+                ('BACKGROUND', (0, 0), (-1, -1), pale_green),
+                ('BOX', (0, 0), (-1, -1), .7, border),
+                ('LEFTPADDING', (0, 0), (-1, -1), 10),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+                ('TOPPADDING', (0, 0), (-1, -1), 9),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 9),
+            ]),
         ),
     ])
-    document.build(story)
+    document.build(story, onFirstPage=draw_footer, onLaterPages=draw_footer)
 
     response = HttpResponse(output.getvalue(), content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="foodlink-receipt-{receipt.receipt_number}.pdf"'
