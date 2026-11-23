@@ -1,5 +1,8 @@
-from django.db import models
+import uuid
+
 from django.conf import settings
+from django.db import models
+
 from donations.models import FoodDonation
 
 class DonationRequest(models.Model):
@@ -28,6 +31,31 @@ class DonationRequest(models.Model):
 
     def __str__(self):
         return f"{self.receiver.username} → {self.donation.food_name} ({self.status})"
+
+
+class DonationReceipt(models.Model):
+    donation_request = models.OneToOneField(
+        DonationRequest,
+        on_delete=models.PROTECT,
+        related_name='receipt',
+    )
+    receipt_number = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    donation_name = models.CharField(max_length=100)
+    quantity = models.CharField(max_length=50)
+    donor_name = models.CharField(max_length=300)
+    receiver_name = models.CharField(max_length=300)
+    donor_organization_name = models.CharField(max_length=150, blank=True)
+    receiver_organization_name = models.CharField(max_length=150, blank=True)
+    pickup_location = models.CharField(max_length=255)
+    pickup_time = models.DateTimeField(blank=True, null=True)
+    completed_at = models.DateTimeField(blank=True, null=True)
+    issued_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ('-issued_at',)
+
+    def __str__(self):
+        return f"Donation receipt {self.receipt_number}"
     
 class Notification(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='notifications')

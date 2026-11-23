@@ -189,7 +189,7 @@ def donation_detail(request, pk):
     if donation.can_be_managed_by(request.user):
         donation_requests = DonationRequest.objects.filter(
             donation=donation
-        ).select_related('receiver').annotate(
+        ).select_related('receiver', 'receipt').annotate(
             receiver_completed_pickups=Count(
                 'receiver__requests',
                 filter=Q(receiver__requests__status='completed'),
@@ -232,6 +232,10 @@ def donation_delete(request, pk):
     if not donation.can_be_managed_by(request.user):
         messages.error(request, 'You are not allowed to delete this donation.')
         return redirect('donation_list')
+
+    if donation.requests.filter(receipt__isnull=False).exists():
+        messages.error(request, 'Donations with confirmed receipts cannot be deleted.')
+        return redirect('donation_detail', pk=pk)
 
     if request.method == 'POST':
         donation.delete()

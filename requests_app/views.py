@@ -8,6 +8,43 @@ from .forms import PickupRequestForm, RatingForm
 from .models import DonationRequest, Notification, Rating
 
 
+from io import BytesIO
+from xml.sax.saxutils import escape
+
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.db import transaction
+from django.db.models import Avg, Count, Q
+from django.http import HttpResponse, HttpResponseForbidden
+from django.shortcuts import render, redirect, get_object_or_404
+from django.utils import timezone
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_CENTER
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import mm
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+
+from accounts.models import OrganizationMembership
+from donations.models import FoodDonation
+from .forms import PickupRequestForm, RatingForm
+from .models import DonationRequest, DonationReceipt, Notification, Rating
+
+
+def _request_access_filter(user):
+    if user.role == 'donor':
+        return (
+            Q(donation__donor=user)
+            | Q(donation__organization__memberships__user=user)
+        )
+    if user.role == 'receiver':
+        return (
+            Q(receiver=user)
+            | Q(receiver_organization__memberships__user=user)
+        )
+    return Q(pk__in=[])
+
+
 def requests_with_trust_signals():
     return DonationRequest.objects.select_related(
         'receiver',
@@ -15,6 +52,7 @@ def requests_with_trust_signals():
         'donation',
         'donation__donor',
         'donation__organization',
+        'receipt',
     ).annotate(
         receiver_completed_pickups=Count(
             'receiver__requests',
@@ -159,6 +197,187 @@ def update_request_status(request, pk, new_status):
     )
     messages.success(request, f'Request marked as {new_status}.')
     return redirect('incoming_requests')
+
+
+@login_required
+def confirm_receipt(request, pk):
+    if request.method != 'POST':
+        messages.error(request, 'Use the receipt confirmation button after receiving the donation.')
+        return redirect('my_requests')
+    if request.user.role != 'receiver':
+        messages.error(request, 'Only the receiver can confirm receipt of a donation.')
+        return redirect('my_requests')
+
+    pickup_request = get_object_or_404(
+        DonationRequest.objects.select_related(
+            'receiver',
+            'receiver_organization',
+            'donation',
+            'donation__donor',
+            'donation__organization',
+        ).filter(_request_access_filter(request.user)).distinct(),
+        pk=pk,
+        status='completed',
+    )
+
+    receipt_values = {
+        'donation_name': pickup_request.donation.food_name,
+        'quantity': pickup_request.donation.quantity,
+        'donor_name': pickup_request.donation.donor.get_full_name() or pickup_request.donation.donor.username,
+        'receiver_name': pickup_request.receiver.get_full_name() or pickup_request.receiver.username,
+        'donor_organization_name': (
+            pickup_request.donation.organization.name
+            if pickup_request.donation.organization_id else ''
+        ),
+        'receiver_organization_name': (
+            pickup_request.receiver_organization.name
+            if pickup_request.receiver_organization_id else ''
+        ),
+        'pickup_location': pickup_request.donation.pickup_location,
+        'pickup_time': pickup_request.pickup_time,
+        'completed_at': pickup_request.completed_at,
+    }
+
+    with transaction.atomic():
+        receipt, created = DonationReceipt.objects.get_or_create(
+            donation_request=pickup_request,
+            defaults=receipt_values,
+        )
+        if created:
+            donor_user_ids = {pickup_request.donation.donor_id}
+            if pickup_request.donation.organization_id:
+                donor_user_ids.update(
+                    OrganizationMembership.objects.filter(
+                        organization_id=pickup_request.donation.organization_id,
+                    ).values_list('user_id', flat=True)
+                )
+            Notification.objects.bulk_create([
+                Notification(
+                    user_id=user_id,
+                    message=f"Receipt confirmed for '{receipt.donation_name}'. The donation receipt is ready to download.",
+                    donation=pickup_request.donation,
+                )
+                for user_id in donor_user_ids
+            ])
+
+    if created:
+        messages.success(request, 'Receipt confirmed. Your donation receipt PDF is ready.')
+    else:
+        messages.info(request, 'Receipt was already confirmed. You can download the existing PDF.')
+    return redirect('my_requests')
+
+
+@login_required
+def donation_receipt(request, pk):
+    if request.user.role not in {'donor', 'receiver'}:
+        return HttpResponseForbidden('Only donation participants can download this receipt.')
+
+    receipt = get_object_or_404(
+        DonationReceipt.objects.select_related(
+            'donation_request',
+            'donation_request__donation',
+        ).filter(
+            donation_request__in=DonationRequest.objects.filter(
+                _request_access_filter(request.user),
+            )
+        ),
+        donation_request_id=pk,
+    )
+
+    output = BytesIO()
+    document = SimpleDocTemplate(
+        output,
+        pagesize=A4,
+        rightMargin=20 * mm,
+        leftMargin=20 * mm,
+        topMargin=20 * mm,
+        bottomMargin=20 * mm,
+        title=f"FoodLink donation receipt {receipt.receipt_number}",
+        author='FoodLink',
+    )
+    styles = getSampleStyleSheet()
+    styles.add(ParagraphStyle(
+        name='ReceiptTitle',
+        parent=styles['Title'],
+        alignment=TA_CENTER,
+        textColor=colors.HexColor('#146c43'),
+        spaceAfter=6 * mm,
+    ))
+    styles.add(ParagraphStyle(
+        name='ReceiptNote',
+        parent=styles['BodyText'],
+        textColor=colors.HexColor('#555555'),
+        leading=15,
+    ))
+
+    story = [
+        Paragraph('FoodLink Donation Receipt', styles['ReceiptTitle']),
+        Paragraph(
+            'Donation handover confirmation — this document is not an invoice and records no sale or payment.',
+            styles['ReceiptNote'],
+        ),
+        Spacer(1, 7 * mm),
+    ]
+    receipt_rows = [
+        ('Receipt number', str(receipt.receipt_number)),
+        ('Issued', timezone.localtime(receipt.issued_at).strftime('%d %b %Y, %H:%M %Z')),
+        ('Donation', receipt.donation_name),
+        ('Quantity', receipt.quantity),
+        ('Donor', receipt.donor_name),
+    ]
+    if receipt.donor_organization_name:
+        receipt_rows.append(('Donor organization', receipt.donor_organization_name))
+    receipt_rows.append(('Receiver', receipt.receiver_name))
+    if receipt.receiver_organization_name:
+        receipt_rows.append(('Receiver organization', receipt.receiver_organization_name))
+    receipt_rows.extend([
+        ('Pickup location', receipt.pickup_location),
+        (
+            'Scheduled pickup',
+            timezone.localtime(receipt.pickup_time).strftime('%d %b %Y, %H:%M %Z')
+            if receipt.pickup_time else 'Not specified',
+        ),
+        (
+            'Handover marked complete',
+            timezone.localtime(receipt.completed_at).strftime('%d %b %Y, %H:%M %Z')
+            if receipt.completed_at else 'Not recorded',
+        ),
+        (
+            'Received confirmed',
+            timezone.localtime(receipt.issued_at).strftime('%d %b %Y, %H:%M %Z'),
+        ),
+    ])
+    table = Table(
+        [[Paragraph(f'<b>{escape(label)}</b>', styles['BodyText']),
+          Paragraph(escape(value), styles['BodyText'])]
+         for label, value in receipt_rows],
+        colWidths=[48 * mm, 112 * mm],
+        hAlign='LEFT',
+    )
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f1f8f4')),
+        ('GRID', (0, 0), (-1, -1), .5, colors.HexColor('#d9e2dc')),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 8),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+        ('TOPPADDING', (0, 0), (-1, -1), 8),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+    ]))
+    story.extend([
+        table,
+        Spacer(1, 8 * mm),
+        Paragraph(
+            'The receiver confirmed that the donation was received. FoodLink records the details above as a donation acknowledgment.',
+            styles['ReceiptNote'],
+        ),
+    ])
+    document.build(story)
+
+    response = HttpResponse(output.getvalue(), content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="foodlink-receipt-{receipt.receipt_number}.pdf"'
+    response['Cache-Control'] = 'private, no-store'
+    return response
+
 
 @login_required
 def cancel_request(request, pk):
