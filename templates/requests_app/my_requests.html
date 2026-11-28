@@ -13,11 +13,11 @@
                 <p class="mb-1"><strong>Donor:</strong> {% if req.donation.organization %}{{ req.donation.organization.name }} <span class="small text-muted">(posted by {{ req.donation.donor.username }})</span>{% else %}{{ req.donation.donor.username }}{% endif %}</p>
                 {% include 'requests_app/_user_trust.html' with trust_user=req.donation.donor trust_completed_count=req.donor_completed_donations trust_average_rating=req.donor_average_rating trust_rating_count=req.donor_rating_count %}
                 <p class="mb-1"><strong>Quantity:</strong> {{ req.donation.quantity }}</p>
-                <p class="mb-1"><strong>Pickup:</strong> {{ req.donation.pickup_location }}</p>
+                {% if req.status != 'accepted' %}<p class="mb-1"><strong>Pickup:</strong> {{ req.donation.pickup_location }}</p>{% endif %}
                 <p class="mb-2"><strong>Requested on:</strong> {{ req.request_date|date:"d M Y, H:i" }}</p>
-                {% if req.pickup_time %}
+                {% if req.pickup_time and req.status != 'accepted' %}
                     <div class="pickup-summary rounded-3 p-3 mb-3">
-                        <div class="small text-muted">{% if req.status == 'accepted' %}Confirmed pickup time{% else %}Requested pickup time{% endif %}</div>
+                        <div class="small text-muted">Requested pickup time</div>
                         <strong><i class="bi bi-calendar-event text-success me-1" aria-hidden="true"></i>{{ req.pickup_time|date:"D, d M Y, H:i" }}</strong>
                     </div>
                 {% endif %}
@@ -27,6 +27,12 @@
                     <a href="{% url 'cancel_request' req.pk %}" class="btn btn-danger btn-sm mt-2">Cancel Request</a>
                 {% elif req.status == 'accepted' %}
                     <span class="badge bg-success">Accepted</span>
+                    <div class="pickup-summary rounded-3 p-3 mt-3">
+                        <div class="small text-muted mb-2">Confirmed pickup details</div>
+                        <p class="mb-2"><i class="bi bi-calendar-event text-success me-2" aria-hidden="true"></i><strong>{{ req.pickup_time|date:"D, d M Y, H:i" }}</strong></p>
+                        <p class="mb-2"><i class="bi bi-geo-alt text-success me-2" aria-hidden="true"></i>{{ req.donation.pickup_location }}</p>
+                        <a href="{% url 'donation_detail' req.donation.pk %}" class="small link-success"><i class="bi bi-box-arrow-up-right me-1" aria-hidden="true"></i>View donation details</a>
+                    </div>
                 {% elif req.status == 'rejected' %}
                     <span class="badge bg-danger">Rejected</span>
                 {% elif req.status == 'completed' %}
